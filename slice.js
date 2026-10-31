@@ -61,24 +61,25 @@ for(const z of [-2,2]){bar(v(-21.3,15.15,z),v(-12,15.15,z),.065,rail,stairs);for
 for(const z of [-16.3,-13.1]){bar(v(-21.4,8.15,z),v(-14.5,8.15,z),.06,rail,stairs);for(let x=-21;x<-14.4;x+=1.5)bar(v(x,7,z),v(x,8.15,z),.045,steel,stairs);}
 const canopy=mesh(new T.ConeGeometry(5.7,1.4,4),mat(0x38b6b3),-16.8,18.5,0,stairs);canopy.rotation.y=Math.PI/4;canopy.scale.z=.56;
 markInteractive(stairs);
-// A one-and-a-half turn flume. The same curve drives the geometry and rider.
-const curvePoints=[];for(let i=0;i<=96;i++){const t=i/96,a=Math.PI+t*Math.PI*3;curvePoints.push(v(10*Math.cos(a),14-12*t,10*Math.sin(a)));}
+// A two-and-a-half turn flume. The same curve drives the geometry and rider.
+const curvePoints=[];for(let i=0;i<=160;i++){const t=i/160,a=Math.PI+t*Math.PI*5;curvePoints.push(v(10*Math.cos(a),14-12*t,10*Math.sin(a)));}
 curvePoints.push(v(10,1.5,4),v(10,.9,10),v(10,.55,18));
 const track=new T.CatmullRomCurve3(curvePoints);const length=track.getLength();
 function trackFrame(t){t=T.MathUtils.clamp(t,0,1);const p=track.getPointAt(t),f=track.getTangentAt(t).normalize(),right=new T.Vector3().crossVectors(f,UP).normalize();return{p,f,right};}
-function flume(water=false){const n=360,m=water?6:20,positions=[],uv=[],indices=[];for(let i=0;i<=n;i++){const f=trackFrame(i/n);for(let j=0;j<=m;j++){const a=(j/m-.5)*(water?.98:Math.PI*1.05),r=1.48;const p=f.p.clone().addScaledVector(f.right,Math.sin(a)*r).addScaledVector(UP,r*(1-Math.cos(a))+(water?.055:0));positions.push(p.x,p.y,p.z);uv.push(j/m,i/n*length/5);if(i<n&&j<m){const k=i*(m+1)+j;indices.push(k,k+m+1,k+1,k+1,k+m+1,k+m+2);}}}const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(positions,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex(indices);g.computeVertexNormals();return g;}
+function flume(water=false){const n=Math.ceil(length*3.2),m=water?6:20,positions=[],uv=[],indices=[];for(let i=0;i<=n;i++){const f=trackFrame(i/n);for(let j=0;j<=m;j++){const a=(j/m-.5)*(water?.98:Math.PI*1.05),r=1.48;const p=f.p.clone().addScaledVector(f.right,Math.sin(a)*r).addScaledVector(UP,r*(1-Math.cos(a))+(water?.055:0));positions.push(p.x,p.y,p.z);uv.push(j/m,i/n*length/5);if(i<n&&j<m){const k=i*(m+1)+j;indices.push(k,k+m+1,k+1,k+1,k+m+1,k+m+2);}}}const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(positions,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex(indices);g.computeVertexNormals();return g;}
 const wallMap=tile(art,2,0,4,2),flowMap=tile(art,0,0,4,2);
 const slideMesh=mesh(flume(),mat(0xffefdb,{map:wallMap,side:T.DoubleSide,roughness:.28}));markInteractive(slideMesh);slideMesh.castShadow=true;slideMesh.receiveShadow=true;
 const flow=mesh(flume(true),mat(0x85ebf0,{map:flowMap,side:T.DoubleSide,transparent:true,opacity:.78,roughness:.15,depthWrite:false}));markInteractive(flow);
-for(const side of [-1,1]){const ps=[];for(let i=0;i<=300;i++){const f=trackFrame(i/300);ps.push(f.p.addScaledVector(f.right,side*1.475).addScaledVector(UP,1.6));}const lip=mesh(new T.TubeGeometry(new T.CatmullRomCurve3(ps),320,.075,6,false),rail);markInteractive(lip);}
+for(const side of [-1,1]){const ps=[];for(let i=0;i<=500;i++){const f=trackFrame(i/500);ps.push(f.p.addScaledVector(f.right,side*1.475).addScaledVector(UP,1.6));}const lip=mesh(new T.TubeGeometry(new T.CatmullRomCurve3(ps),520,.075,6,false),rail);markInteractive(lip);}
 // Outside columns and cantilevers leave both overlapping flume turns completely clear.
 const supports=[];
-for(let i=0;i<=12;i++){const f=trackFrame(i/13),out=i/13<.85?v(f.p.x,0,f.p.z).normalize():v(1,0,0),foot=f.p.clone().addScaledVector(out,3.2);foot.y=0;const top=foot.clone();top.y=f.p.y-.25;bar(foot,top,.17,steel);bar(top,f.p.clone().addScaledVector(UP,-.25),.13,steel);box(1,.16,1,cream,foot.x,0,foot.z);supports.push({x:foot.x,z:foot.z,height:top.y});}
+const supportCount=Math.ceil(length/9);
+for(let i=0;i<supportCount;i++){const t=i/supportCount,f=trackFrame(t),out=t>.8&&f.p.x>9.8&&f.p.z>0?v(1,0,0):v(f.p.x,0,f.p.z).normalize(),foot=f.p.clone().addScaledVector(out,3.2);foot.y=0;const top=foot.clone();top.y=f.p.y-.25;bar(foot,top,.17,steel);bar(top,f.p.clone().addScaledVector(UP,-.25),.13,steel);box(1,.16,1,cream,foot.x,0,foot.z);supports.push({x:foot.x,z:foot.z,height:top.y});}
 // White flume joints show the speed and changing perspective through turns.
-const joints=[];for(let i=1;i<43;i++){const f=trackFrame(i/44),ps=[];for(let j=0;j<=18;j++){const a=(j/18-.5)*Math.PI*1.05;ps.push(f.p.clone().addScaledVector(f.right,Math.sin(a)*1.486).addScaledVector(UP,1.486*(1-Math.cos(a))+.01));}joints.push(...ps.flatMap((p,j)=>j? [...ps[j-1].toArray(),...p.toArray()]:[]));}
+const joints=[],jointCount=Math.ceil(length/2.6);for(let i=1;i<jointCount;i++){const f=trackFrame(i/jointCount),ps=[];for(let j=0;j<=18;j++){const a=(j/18-.5)*Math.PI*1.05;ps.push(f.p.clone().addScaledVector(f.right,Math.sin(a)*1.486).addScaledVector(UP,1.486*(1-Math.cos(a))+.01));}joints.push(...ps.flatMap((p,j)=>j? [...ps[j-1].toArray(),...p.toArray()]:[]));}
 const jointGeo=new T.BufferGeometry();jointGeo.setAttribute('position',new T.Float32BufferAttribute(joints,3));scene.add(new T.LineSegments(jointGeo,new T.LineBasicMaterial({color:0xdcffff,transparent:true,opacity:.6})));
 // Small floating 3D objects replace upright billboard rectangles.
-const hazards=[{at:.24,lane:-.43,kind:1},{at:.43,lane:.43,kind:0},{at:.63,lane:0,kind:2},{at:.81,lane:-.43,kind:1}];
+const hazards=[{at:.15,lane:-.43,kind:1},{at:.28,lane:.43,kind:0},{at:.41,lane:0,kind:2},{at:.54,lane:-.43,kind:1},{at:.68,lane:.43,kind:0},{at:.82,lane:0,kind:2}];
 for(const h of hazards){const g=new T.Group();scene.add(g);h.mesh=g;g.userData.dynamic=true;
  if(h.kind===1){const yellow=mat(0xffd945),body=ball(.25,yellow,0,.18,0,g);body.scale.set(1,.7,1.25);ball(.16,yellow,0,.43,.16,g);box(.2,.075,.16,mat(0xff913e),0,.41,.32,g);for(const x of [-.11,.11])ball(.025,mat(0x173731),x,.48,.26,g);}
  else if(h.kind===0){mesh(new T.CylinderGeometry(.22,.26,.16,16),mat(0xff8649),0,.10,0,g);mesh(new T.CylinderGeometry(.225,.25,.055,16),white,0,.13,0,g);mesh(new T.ConeGeometry(.13,.24,12),mat(0xff8649),0,.30,0,g);}

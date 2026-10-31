@@ -42,9 +42,10 @@ const {chromium}=require('playwright');
    if(await page.evaluate(()=>sliceTest.state.finished))break;
    assert(i<89,'Did not exit the pool');
   }
-  const result=await page.evaluate(()=>({...motion,duration:sliceTest.state.rideTime,drawCalls:sliceTest.drawCalls}));
+  const result=await page.evaluate(()=>({...motion,duration:sliceTest.state.rideTime,length:sliceTest.length,drawCalls:sliceTest.drawCalls}));
   for(const phase of ['climb','platform','ride','splash','exit'])assert(result.stages.includes(phase),'Missing '+phase);
-  assert(result.duration<8,'Slide must accelerate and finish much faster than the old 18-second ride');
+  assert(result.length>170,'The extra turn must add real track length');
+  assert(result.duration>8&&result.duration<11,'The longer slide should take about nine seconds at the same fast pace');
   const launch=result.transitions.find(t=>t.from==='platform'&&t.to==='ride');assert(launch&&launch.jump<.15,'Abrupt entry: '+JSON.stringify(launch));
   assert(result.maxBank>.25&&result.maxLean>.08,'Missing banking and steering lean');
   assert(result.minClearance>=.03,'Mat clips the flume: '+result.minClearance);
