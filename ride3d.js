@@ -15,7 +15,7 @@
   function frame(type, u, direction = 1) {
     const p = point(type, u), a = point(type, u - .0002), b = point(type, u + .0002);
     const tangent = b.sub(a).normalize().multiplyScalar(direction);
-    const right = new T.Vector3().crossVectors(UP, tangent).normalize();
+    const right = new T.Vector3().crossVectors(tangent, UP).normalize();
     return { p, tangent, right };
   }
   function canvasCell(im, col, row, cols, rows) {
