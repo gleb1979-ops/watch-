@@ -9,12 +9,13 @@ const course=process.env.COURSE==='tunnel'?'tunnel':'spiral';
   page.on('pageerror',e=>errors.push(e.message));
   await page.goto('http://127.0.0.1:8000/?course='+course);await page.waitForFunction(()=>window.sliceTest?.ready);
   await page.evaluate(()=>{
-   window.motion={stages:[],transitions:[],minClearance:Infinity,maxBank:0,maxLean:0,occludedFrames:0,chambers:0,inChamber:false};
+   window.motion={stages:[],transitions:[],minClearance:Infinity,maxBank:0,maxLean:0,occludedFrames:0,blockedSamples:[],outdoorOccluded:0,blockedHeadroom:0,chambers:0,inChamber:false};
    window.advanceSlice=(count,dt=.02)=>{const g=sliceTest,m=motion;for(let i=0;i<count;i++){
     const before=g.state;g.update(dt);const after=g.state;
     if(!m.stages.includes(after.mode))m.stages.push(after.mode);
     if(before.mode!==after.mode)m.transitions.push({from:before.mode,to:after.mode,jump:Math.hypot(...after.position.map((x,j)=>x-before.position[j]))});
-    if(after.mode==='ride'){if(g.radius>2.8&&!m.inChamber)m.chambers++;m.inChamber=g.radius>2.8;m.minClearance=Math.min(m.minClearance,g.clearance);m.maxBank=Math.max(m.maxBank,Math.abs(after.roll));m.maxLean=Math.max(m.maxLean,Math.abs(after.lean));m.occludedFrames+=Number(g.cameraBlocked);}
+    if(['walk','climb','platform'].includes(after.mode))m.outdoorOccluded+=Number(g.cameraBlocked);if(after.mode==='climb')m.blockedHeadroom+=Number(!g.stairHeadroom);
+    if(after.mode==='ride'){if(g.radius>2.8&&!m.inChamber)m.chambers++;m.inChamber=g.radius>2.8;m.minClearance=Math.min(m.minClearance,g.clearance);m.maxBank=Math.max(m.maxBank,Math.abs(after.roll));m.maxLean=Math.max(m.maxLean,Math.abs(after.lean));m.occludedFrames+=Number(g.cameraBlocked);if(g.cameraBlocked&&m.blockedSamples.length<10)m.blockedSamples.push({phase:after.phase,position:after.position,camera:after.camera,safety:g.cameraSafety});}
    }};
   });
   await page.click('#start');await page.waitForTimeout(150);
@@ -45,13 +46,14 @@ const course=process.env.COURSE==='tunnel'?'tunnel':'spiral';
   }
   const result=await page.evaluate(()=>({...motion,duration:sliceTest.state.rideTime,length:sliceTest.length,drawCalls:sliceTest.drawCalls}));
   for(const phase of ['climb','platform','ride','splash','exit'])assert(result.stages.includes(phase),'Missing '+phase);
-  assert(result.length>(course==='tunnel'?120:170),'Track should have its full physical length');
-  assert(result.duration>(course==='tunnel'?5:8)&&result.duration<11,'The slide should keep its fast pace');
+  assert(result.length>(course==='tunnel'?280:170),'Track should have its full physical length');
+  assert(result.duration>(course==='tunnel'?13:8)&&result.duration<(course==='tunnel'?17:11),'The slide should keep its fast pace');
   const launch=result.transitions.find(t=>t.from==='platform'&&t.to==='ride');assert(launch&&launch.jump<.15,'Abrupt entry: '+JSON.stringify(launch));
   assert(result.maxBank>(course==='tunnel'?.17:.25)&&result.maxLean>.08,'Missing banking and steering lean');
   if(course==='tunnel')assert.equal(result.chambers,3,'Missing widened chambers');
   assert(result.minClearance>=.03,'Mat clips the flume: '+result.minClearance);
-  assert.equal(result.occludedFrames,0,'Scenery blocked the rider camera');
+  assert.equal(result.outdoorOccluded,0,'Camera clipped outdoor geometry');assert.equal(result.blockedHeadroom,0,'Deck or rail crosses the climb path');
+  assert.equal(result.occludedFrames,0,'Scenery blocked the rider camera: '+JSON.stringify(result.blockedSamples));
   await page.click('#view');await page.evaluate(()=>advanceSlice(160));await page.waitForTimeout(100);
   await page.screenshot({path:'checks/'+course+'-overview.png'});
   const other=course==='tunnel'?'spiral':'tunnel';await Promise.all([page.waitForURL(url=>url.searchParams.get('course')===other),page.click('[data-course="'+other+'"]')]);await page.waitForFunction(other=>window.sliceTest?.state.course===other,other);assert.equal(await page.locator('[data-course="'+other+'"]').getAttribute('aria-pressed'),'true');
