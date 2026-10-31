@@ -55,9 +55,9 @@ const stairs=new T.Group();scene.add(stairs);
 function flight(x,z0,z1,y0){for(let j=0;j<20;j++){const u=(j+1)/20,z=z0+(z1-z0)*u,y=y0+u*7;box(2.7,.2,.77,cream,x,y-.1,z,stairs);box(2.5,.055,.10,rail,x,y+.025,z+(z1>z0?-.30:.30),stairs);if(j%3===0)for(const side of [-1,1])bar(v(x+side*1.35,y,z),v(x+side*1.35,y+1.15,z),.045,steel,stairs);}
 for(const side of [-1,1]){bar(v(x+side*1.35,y0+1.15,z0),v(x+side*1.35,y0+8.15,z1),.065,rail,stairs);bar(v(x+side*1.08,y0-.35,z0),v(x+side*1.08,y0+6.65,z1),.10,steel,stairs);}}
 flight(-20,0,-14,0);flight(-16,-14,0,7);
-box(6.7,.3,3.4,cream,-18,6.85,-14.7,stairs);box(12,.35,4.2,cream,-15.6,13.82,0,stairs);
-for(const x of [-21.2,-15,-10.3])for(const z of [-1.9,1.9]){bar(v(x,0,z),v(x,14,z),.16,steel,stairs);if(x!==-10.3)bar(v(x,14,z),v(x,18,z),.08,steel,stairs);}
-for(const z of [-2,2]){bar(v(-21.3,15.15,z),v(-10,15.15,z),.065,rail,stairs);for(let x=-21;x<-10;x+=1.5)bar(v(x,14,z),v(x,15.15,z),.045,steel,stairs);}
+box(6.7,.3,3.4,cream,-18,6.85,-14.7,stairs);box(9.8,.35,4.2,cream,-16.7,13.82,0,stairs);box(3.6,.35,2.1,cream,-10.5,13.82,1.05,stairs);
+for(const x of [-21.2,-15,-12.8])for(const z of [-1.9,1.9]){bar(v(x,0,z),v(x,14,z),.16,steel,stairs);if(x!==-12.8)bar(v(x,14,z),v(x,18,z),.08,steel,stairs);}
+for(const z of [-2,2]){bar(v(-21.3,15.15,z),v(-12,15.15,z),.065,rail,stairs);for(let x=-21;x<-12;x+=1.5)bar(v(x,14,z),v(x,15.15,z),.045,steel,stairs);}
 for(const z of [-16.3,-13.1]){bar(v(-21.4,8.15,z),v(-14.5,8.15,z),.06,rail,stairs);for(let x=-21;x<-14.4;x+=1.5)bar(v(x,7,z),v(x,8.15,z),.045,steel,stairs);}
 const canopy=mesh(new T.ConeGeometry(5.7,1.4,4),mat(0x38b6b3),-16.8,18.5,0,stairs);canopy.rotation.y=Math.PI/4;canopy.scale.z=.56;
 markInteractive(stairs);
@@ -71,32 +71,45 @@ const wallMap=tile(art,2,0,4,2),flowMap=tile(art,0,0,4,2);
 const slideMesh=mesh(flume(),mat(0xffefdb,{map:wallMap,side:T.DoubleSide,roughness:.28}));markInteractive(slideMesh);slideMesh.castShadow=true;slideMesh.receiveShadow=true;
 const flow=mesh(flume(true),mat(0x85ebf0,{map:flowMap,side:T.DoubleSide,transparent:true,opacity:.78,roughness:.15,depthWrite:false}));markInteractive(flow);
 for(const side of [-1,1]){const ps=[];for(let i=0;i<=300;i++){const f=trackFrame(i/300);ps.push(f.p.addScaledVector(f.right,side*1.475).addScaledVector(UP,1.6));}const lip=mesh(new T.TubeGeometry(new T.CatmullRomCurve3(ps),320,.075,6,false),rail);markInteractive(lip);}
-for(let i=0;i<=12;i++){const f=trackFrame(i/13);bar(v(f.p.x,0,f.p.z),f.p.clone().addScaledVector(UP,-.15),.17,steel);box(1,.16,1,cream,f.p.x,0,f.p.z);}
+// Outside columns and cantilevers leave both overlapping flume turns completely clear.
+const supports=[];
+for(let i=0;i<=12;i++){const f=trackFrame(i/13),out=i/13<.85?v(f.p.x,0,f.p.z).normalize():v(1,0,0),foot=f.p.clone().addScaledVector(out,3.2);foot.y=0;const top=foot.clone();top.y=f.p.y-.25;bar(foot,top,.17,steel);bar(top,f.p.clone().addScaledVector(UP,-.25),.13,steel);box(1,.16,1,cream,foot.x,0,foot.z);supports.push({x:foot.x,z:foot.z,height:top.y});}
 // White flume joints show the speed and changing perspective through turns.
 const joints=[];for(let i=1;i<43;i++){const f=trackFrame(i/44),ps=[];for(let j=0;j<=18;j++){const a=(j/18-.5)*Math.PI*1.05;ps.push(f.p.clone().addScaledVector(f.right,Math.sin(a)*1.486).addScaledVector(UP,1.486*(1-Math.cos(a))+.01));}joints.push(...ps.flatMap((p,j)=>j? [...ps[j-1].toArray(),...p.toArray()]:[]));}
 const jointGeo=new T.BufferGeometry();jointGeo.setAttribute('position',new T.Float32BufferAttribute(joints,3));scene.add(new T.LineSegments(jointGeo,new T.LineBasicMaterial({color:0xdcffff,transparent:true,opacity:.6})));
-const hazards=[{at:.24,lane:-.72,kind:1},{at:.43,lane:.7,kind:0},{at:.63,lane:0,kind:2},{at:.81,lane:-.7,kind:1}];
-for(const h of hazards){const material=new T.SpriteMaterial({map:tile(props,h.kind,0,4,2),transparent:true,depthWrite:false});h.mesh=new T.Sprite(material);h.mesh.scale.set(1.15,1.3,1);scene.add(h.mesh);}
+// Small floating 3D objects replace upright billboard rectangles.
+const hazards=[{at:.24,lane:-.43,kind:1},{at:.43,lane:.43,kind:0},{at:.63,lane:0,kind:2},{at:.81,lane:-.43,kind:1}];
+for(const h of hazards){const g=new T.Group();scene.add(g);h.mesh=g;g.userData.dynamic=true;
+ if(h.kind===1){const yellow=mat(0xffd945),body=ball(.25,yellow,0,.18,0,g);body.scale.set(1,.7,1.25);ball(.16,yellow,0,.43,.16,g);box(.2,.075,.16,mat(0xff913e),0,.41,.32,g);for(const x of [-.11,.11])ball(.025,mat(0x173731),x,.48,.26,g);}
+ else if(h.kind===0){mesh(new T.CylinderGeometry(.22,.26,.16,16),mat(0xff8649),0,.10,0,g);mesh(new T.CylinderGeometry(.225,.25,.055,16),white,0,.13,0,g);mesh(new T.ConeGeometry(.13,.24,12),mat(0xff8649),0,.30,0,g);}
+ else{const packet=box(.34,.065,.45,mat(0xffda73,{map:tile(props,2,0,4,2)}),0,.10,0,g);packet.rotation.y=.35;}
+ g.traverse(o=>o.userData.dynamic=true);
+}
 // Batch static scenery by material; moving water, rings and the child stay separate.
 scene.updateMatrixWorld(true);
 const buckets=new Map(),staticMeshes=[];
-scene.traverse(o=>{if(o.isMesh&&!poolRings.includes(o)&&o!==pool&&o!==flow&&!Array.isArray(o.material)){const key=o.material.uuid+Boolean(o.userData.ride);if(!buckets.has(key))buckets.set(key,{material:o.material,ride:o.userData.ride,geometries:[]});const g=(o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone());g.applyMatrix4(o.matrixWorld);buckets.get(key).geometries.push(g);staticMeshes.push(o);}});
+scene.traverse(o=>{if(o.isMesh&&!o.userData.dynamic&&!poolRings.includes(o)&&o!==pool&&o!==flow&&!Array.isArray(o.material)){const key=o.material.uuid+Boolean(o.userData.ride);if(!buckets.has(key))buckets.set(key,{material:o.material,ride:o.userData.ride,geometries:[]});const g=(o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone());g.applyMatrix4(o.matrixWorld);buckets.get(key).geometries.push(g);staticMeshes.push(o);}});
 for(const bucket of buckets.values()){const g=new T.BufferGeometry();for(const name of ['position','normal','uv']){if(!bucket.geometries.every(a=>a.getAttribute(name)))continue;const size=bucket.geometries[0].getAttribute(name).itemSize,n=bucket.geometries.reduce((sum,a)=>sum+a.getAttribute(name).array.length,0),out=new Float32Array(n);let offset=0;for(const a of bucket.geometries){out.set(a.getAttribute(name).array,offset);offset+=a.getAttribute(name).array.length;}g.setAttribute(name,new T.BufferAttribute(out,size));}g.computeBoundingSphere();const combined=mesh(g,bucket.material);combined.userData.ride=bucket.ride;combined.castShadow=true;combined.receiveShadow=true;bucket.geometries.forEach(g=>g.dispose());}
 staticMeshes.forEach(o=>o.parent.remove(o));
+const cameraBlockers=scene.children.filter(o=>o.isMesh&&o!==pool&&o!==flow&&!o.userData.dynamic);
 // One child with articulated legs. He stays in the scene during every phase.
 const rig=window.createTrapkinsRig(0,clothes);rig.root.traverse(o=>{if(o.isMesh)o.receiveShadow=true;});scene.add(rig.root);rig.root.scale.setScalar(.55);
 const shadow=mesh(new T.CircleGeometry(.60,24),mat(0x235b4c,{transparent:true,opacity:.18,depthWrite:false}),0,.018,0);shadow.rotation.x=-Math.PI/2;
 const matGroup=new T.Group();scene.add(matGroup);const matBlue=mat(0xffc85b,{roughness:.55});
-box(1.0,.11,1.9,matBlue,0,0,0,matGroup);for(const x of [-.44,.44])box(.055,.04,1.65,white,x,.07,0,matGroup);const nose=mesh(new T.CylinderGeometry(.5,.5,.1,18),matBlue,0,0,.92,matGroup);nose.scale.z=.5;
+box(.86,.11,1.9,matBlue,0,0,0,matGroup);for(const x of [-.37,.37])box(.055,.04,1.65,white,x,.07,0,matGroup);const nose=mesh(new T.CylinderGeometry(.43,.43,.1,18),matBlue,0,0,.92,matGroup);nose.scale.z=.5;
 const particles=[];for(let i=0;i<36;i++){const m=ball(.045+(i%4)*.02,mat(0xd9ffff,{transparent:true,opacity:.75}),0,-5,0);particles.push({mesh:m,angle:i*2.399,speed:1.8+(i%5)*.5});}
-const state={mode:'menu',position:v(-14,0,9),heading:Math.PI,travel:0,phase:0,lane:0,laneSpeed:0,steps:0,score:0,bumps:0,walked:0,finished:false};
+const wake=[];for(let i=0;i<16;i++)wake.push(ball(.045+(i%3)*.012,mat(0xdcffff,{transparent:true,opacity:.65}),0,-5,0));
+const LANE_LIMIT=.55,FLUME_RADIUS=1.48;
+const launchFrom=new T.Vector3(),splashFrom=new T.Vector3();
+const boardRotation=new T.Quaternion(),riderRotation=new T.Quaternion();
+const state={speed:0,rideTime:0,seat:0,roll:0,lean:0,pitch:0,mode:'menu',position:v(-14,0,9),heading:Math.PI,travel:0,phase:0,lane:0,laneSpeed:0,steps:0,score:0,bumps:0,walked:0,finished:false};
 let paused=false,overview=true,autoTarget=null,route=[],clock=0,last=performance.now(),feedbackUntil=0,finishedAt=0,dragLane=null,dragUntil=0;
-const held=new Set(),stairPath=[v(-20,0,0)];for(let j=1;j<=20;j++)stairPath.push(v(-20,j*.35,-j*.7));stairPath.push(v(-16,7,-14));for(let j=1;j<=20;j++)stairPath.push(v(-16,7+j*.35,-14+j*.7));stairPath.push(v(-10,14,0));
+const held=new Set(),stairPath=[v(-20,0,0)];for(let j=1;j<=20;j++)stairPath.push(v(-20,j*.35,-j*.7));stairPath.push(v(-16,7,-14));for(let j=1;j<=20;j++)stairPath.push(v(-16,7+j*.35,-14+j*.7));stairPath.push(v(-13,14,1.35),v(-10,14,1.7));
 let stairSegment=0;
 function say(message){$('feedback').textContent=message;$('feedback').classList.add('visible');feedbackUntil=clock+3.2;}
 function setMode(mode){state.mode=mode;document.body.dataset.mode=mode;document.body.classList.toggle('riding',mode==='ride');const step=mode==='walk'?'walk':mode==='climb'||mode==='platform'?'climb':mode==='ride'?'ride':'pool';document.querySelectorAll('[data-phase]').forEach(e=>e.classList.toggle('active',e.dataset.phase===step));$('instruction').textContent={walk:'Прогуляйся по площадке или отправляйся к лестнице.',climb:'Две лестницы, площадка наверху — и можно ехать.',platform:'Садимся на коврик. Сейчас поедем!',ride:'Рули влево-вправо. Объезжай утят, буйки и пакетик!',splash:'Плюх! Ещё немного — и обратно на площадку.',exit:'Выбираемся из бассейна по ступенькам.'}[mode]||'';$('controls').innerHTML=mode==='ride'?'<kbd>←</kbd> <kbd>→</kbd> или <kbd>A</kbd> <kbd>D</kbd> — рулить <b>·</b> мышь — влево / вправо':'<kbd>WASD</kbd> / стрелки — ходить <b>·</b> клик — идти <b>·</b> <kbd>E</kbd> — на горку';if(!['walk','ride'].includes(mode))$('controls').textContent=mode==='climb'?'Подъём по лестнице':mode==='platform'?'Садимся на коврик':'Возвращаемся на площадку';$('go').hidden=!['walk'].includes(mode);}
 function start(){if(state.mode!=='menu')return;$('welcome').hidden=true;overview=false;setMode('walk');say('Нажми на лестницу или «На горку»');}
-function go(){if(paused)return;if(state.mode==='menu')start();if(state.mode!=='walk')return;overview=false;state.finished=false;state.score=0;state.bumps=0;hazards.forEach(h=>h.checked=false);navigate(v(-20,0,0));$('go').textContent='Идём к лестнице…';say('Идём ко входу. Дальше поднимемся по ступенькам.');}
+function go(){if(paused)return;if(state.mode==='menu')start();if(state.mode!=='walk')return;overview=false;state.finished=false;state.score=0;state.bumps=0;hazards.forEach(h=>{h.checked=false;h.pushed=0;});state.lane=0;state.laneSpeed=0;state.roll=0;state.lean=0;state.rideTime=0;navigate(v(-20,0,0));$('go').textContent='Идём к лестнице…';say('Идём ко входу. Дальше поднимемся по ступенькам.');}
 function canWalk(p){return p.x>-26.5&&p.x<26.5&&p.z>-27.5&&p.z<29.8&&!(p.x>5.1&&p.x<19&&p.z>14.1&&p.z<29.8);}
 // A small navigation grid routes walks around the pool instead of stopping at its edge.
 function navigate(target){const width=55,height=58,N=width*height,point=k=>v(k%width-27,0,Math.floor(k/width)-28),valid=new Uint8Array(N);for(let k=0;k<N;k++)valid[k]=Number(canWalk(point(k)));function nearest(p){let best=-1,d=Infinity;for(let k=0;k<N;k++)if(valid[k]){const q=point(k).distanceToSquared(p);if(q<d){d=q;best=k;}}return best;}const a=nearest(state.position),b=nearest(target),previous=new Int32Array(N).fill(-1),queue=[a];previous[a]=a;for(let n=0;n<queue.length;n++){const k=queue[n];if(k===b)break;for(const delta of [-1,1,-width,width]){const next=k+delta;if(next<0||next>=N||!valid[next]||previous[next]>=0||Math.abs(next%width-k%width)>1)continue;previous[next]=k;queue.push(next);}}const points=[];if(previous[b]>=0){for(let k=b;k!==a;k=previous[k])points.push(point(k));points.push(point(a));points.reverse();}route=points.filter((p,i)=>i===0||i===points.length-1||Math.sign(p.x-points[i-1].x)!==Math.sign(points[i+1].x-p.x)||Math.sign(p.z-points[i-1].z)!==Math.sign(points[i+1].z-p.z));route.push(target.clone());autoTarget=route.shift();}
@@ -106,22 +119,64 @@ if(x||z){autoTarget=null;route=[];$('go').innerHTML='На горку <span>→</
 else if(autoTarget&&moveTo(autoTarget,dt)){autoTarget=route.shift()||null;if(!autoTarget&&state.position.distanceTo(stairPath[0])<.3){state.position.copy(stairPath[0]);stairSegment=1;setMode('climb');say('Поднимаемся по лестнице');}}
 if(state.mode==='walk'&&!autoTarget&&state.walking&&state.position.distanceTo(stairPath[0])<.75){stairSegment=1;setMode('climb');}
 }
-function climb(dt){state.walking=true;const target=stairPath[stairSegment],d=target.clone().sub(state.position),distance=d.length(),speed=3.4,step=Math.min(distance,dt*speed);state.position.addScaledVector(d.normalize(),step);state.walked+=step;state.heading=Math.atan2(d.x,d.z);state.steps=stairSegment;if(distance<=step+.005){state.position.copy(target);stairSegment++;if(stairSegment>=stairPath.length){setMode('platform');state.phase=0;state.heading=0;state.walking=false;}}$('progress').style.width=(stairSegment/stairPath.length*28)+'%';}
-function riding(dt){camera.updateMatrixWorld();const visualRight=trackFrame(state.phase).right.dot(new T.Vector3().setFromMatrixColumn(camera.matrixWorld,0))>=0?1:-1;const input=(Number(held.has('d')||held.has('ArrowRight'))-Number(held.has('a')||held.has('ArrowLeft')))*visualRight;const wanted=input*1.8||((dragLane!=null&&clock<dragUntil)?T.MathUtils.clamp((dragLane*visualRight-state.lane)*5,-1.8,1.8):0);state.laneSpeed+=(wanted-state.laneSpeed)*(1-Math.exp(-7*dt));state.lane=T.MathUtils.clamp(state.lane+state.laneSpeed*dt,-.9,.9);state.phase=Math.min(1,state.phase+dt/(state.slow>clock?24:18));const f=trackFrame(state.phase);state.position.copy(f.p).addScaledVector(f.right,state.lane).addScaledVector(UP,.2);state.heading=Math.atan2(f.f.x,f.f.z);
-for(const h of hazards)if(!h.checked&&state.phase>=h.at){h.checked=true;if(Math.abs(state.lane-h.lane)<.42){state.bumps++;state.slow=clock+.7;say(h.kind===2?'Шурх! Пакетик — объезжай его.':'Плюх! Попробуй объехать следующее препятствие.');}else{state.score+=100;say('Ловкий манёвр! +100');}}
-$('progress').style.width=(28+state.phase*65)+'%';if(state.phase>=1){setMode('splash');state.phase=0;finishedAt=clock;say('ПЛЮХ! Ты проехал всю спираль.');}}
-function pose(dt){const seated=['platform','ride','splash'].includes(state.mode),swimming=state.mode==='exit';rig.root.position.copy(state.position);let delta=(state.heading-rig.root.rotation.y+Math.PI*3)%(Math.PI*2)-Math.PI;rig.root.rotation.y+=delta*(1-Math.exp(-12*dt));rig.body.position.y=seated?-.37:state.walking?Math.abs(Math.sin(state.walked*6))*.035:0;rig.body.rotation.x=seated?-.13:0;rig.body.rotation.z=0;
-for(let i=0;i<2;i++){const p=state.walked*3.4+i*Math.PI,swing=state.walking?Math.sin(p)*.42:0;rig.legs[i].joint.rotation.x=seated?-1.2:swimming?-.6:swing;rig.legs[i].knee.rotation.x=seated?.25:Math.max(0,-swing)*.8;rig.legs[i].foot.rotation.x=seated?.3:-swing*.4;rig.arms[i].joint.rotation.x=seated?-.7+Math.sin(clock*2+i)*.025:swimming?Math.sin(clock*5+i*Math.PI)*.8:-swing*.85;rig.arms[i].elbow.rotation.x=-.2;}
-matGroup.visible=seated;matGroup.position.copy(state.position).addScaledVector(UP,.08);matGroup.rotation.y=state.heading;shadow.visible=state.mode==='walk';shadow.position.set(state.position.x,.025,state.position.z);
+function climb(dt){state.walking=true;const target=stairPath[stairSegment],d=target.clone().sub(state.position),distance=d.length(),speed=3.4,step=Math.min(distance,dt*speed);state.position.addScaledVector(d.normalize(),step);state.walked+=step;state.heading=Math.atan2(d.x,d.z);state.steps=stairSegment;if(distance<=step+.005){state.position.copy(target);stairSegment++;if(stairSegment>=stairPath.length){setMode('platform');state.phase=0;launchFrom.copy(state.position);state.walking=false;}}$('progress').style.width=(stairSegment/stairPath.length*28)+'%';}
+function riding(dt){
+ camera.updateMatrixWorld();const visualRight=trackFrame(state.phase).right.dot(new T.Vector3().setFromMatrixColumn(camera.matrixWorld,0))>=0?1:-1;
+ const input=(Number(held.has('d')||held.has('ArrowRight'))-Number(held.has('a')||held.has('ArrowLeft')))*visualRight;
+ const wanted=input*1.65||((dragLane!=null&&clock<dragUntil)?T.MathUtils.clamp((dragLane*visualRight-state.lane)*6,-1.65,1.65):0);
+ state.laneSpeed+=(wanted-state.laneSpeed)*(1-Math.exp(-8*dt));state.lane=T.MathUtils.clamp(state.lane+state.laneSpeed*dt,-LANE_LIMIT,LANE_LIMIT);
+ if(Math.abs(state.lane)===LANE_LIMIT&&Math.sign(state.laneSpeed)===Math.sign(state.lane))state.laneSpeed*=Math.exp(-14*dt);
+ const before=trackFrame(state.phase),targetSpeed=21+Math.max(0,-before.f.y)*12;
+ state.speed+=(targetSpeed-state.speed)*(1-Math.exp(-1.3*dt));state.rideTime+=dt;state.phase=Math.min(1,state.phase+state.speed*dt/length);
+ const f=trackFrame(state.phase),bank=FLUME_RADIUS-Math.sqrt(FLUME_RADIUS**2-state.lane**2);
+ state.position.copy(f.p).addScaledVector(f.right,state.lane).addScaledVector(UP,bank+.15);state.heading=Math.atan2(f.f.x,f.f.z);
+ const ahead=trackFrame(Math.min(1,state.phase+.012)),bend=f.f.x*ahead.f.z-f.f.z*ahead.f.x;
+ const targetRoll=-Math.asin(state.lane/FLUME_RADIUS),targetLean=T.MathUtils.clamp(-state.laneSpeed*.11+bend*state.speed*.06,-.23,.23);
+ state.roll+=(targetRoll-state.roll)*(1-Math.exp(-12*dt));state.lean+=(targetLean-state.lean)*(1-Math.exp(-9*dt));state.pitch=Math.atan2(-f.f.y,Math.hypot(f.f.x,f.f.z));
+ for(const h of hazards)if(!h.checked&&state.phase>=h.at){h.checked=true;if(Math.abs(state.lane-h.lane)<.29){state.bumps++;h.pushed=state.lane>=h.lane?-1:1;h.pushedAt=clock;state.speed*=.97;say(h.kind===2?'Шурх! Пакетик уплыл в сторону.':'Брызги! Попробуй объехать следующее.');}else{state.score+=100;say('Ловкий манёвр! +100');}}
+ $('progress').style.width=(28+state.phase*65)+'%';
+ if(state.phase>=1){splashFrom.copy(state.position);setMode('splash');state.phase=0;finishedAt=clock;say('ПЛЮХ! Ты проехал всю спираль.');}
+}
+const boardContacts=[[-.43,-.95],[.43,-.95],[-.43,.95],[.43,.95],[0,1.135],[-.30,1.07],[.30,1.07]];
+function boardClearance(){let minimum=Infinity;for(const [x,z]of boardContacts){const p=v(x,-.055,z).applyQuaternion(matGroup.quaternion).add(matGroup.position);let t=state.phase;for(let i=0;i<3;i++){const f=trackFrame(t),dx=p.x-f.p.x,dz=p.z-f.p.z;t=T.MathUtils.clamp(t+(dx*f.f.x+dz*f.f.z)/(length*(f.f.x**2+f.f.z**2)),0,1);}const f=trackFrame(t),side=Math.abs(p.clone().sub(f.p).dot(f.right)),floor=FLUME_RADIUS-Math.sqrt(Math.max(0,FLUME_RADIUS**2-side**2));minimum=Math.min(minimum,p.y-f.p.y-floor);}return minimum;}
+function pose(dt){
+ const seated=['platform','ride','splash'].includes(state.mode),swimming=state.mode==='exit';
+ state.seat=T.MathUtils.damp(state.seat,seated?1:0,7,dt);
+ rig.root.position.copy(state.position);
+ const pitch=state.mode==='ride'?state.pitch:0,roll=state.mode==='ride'?state.roll:0;
+ boardRotation.setFromEuler(new T.Euler(pitch,state.heading,roll,'YXZ'));
+ riderRotation.copy(boardRotation).multiply(new T.Quaternion().setFromAxisAngle(v(0,0,1),state.mode==='ride'?state.lean:0));
+ rig.root.quaternion.slerp(riderRotation,1-Math.exp(-18*dt));rig.root.position.add(v(0,-.65*state.seat,0).applyQuaternion(rig.root.quaternion));
+ rig.body.position.y=state.walking?Math.abs(Math.sin(state.walked*6))*.035*(1-state.seat):0;
+ rig.body.rotation.x=-.08*state.seat;rig.body.rotation.z=0;
+ for(let i=0;i<2;i++){const p=state.walked*3.4+i*Math.PI,swing=state.walking?Math.sin(p)*.42:0,blend=state.seat;
+ rig.legs[i].joint.rotation.x=T.MathUtils.lerp(swimming?-.6:swing,-1.35,blend);
+ rig.legs[i].knee.rotation.x=T.MathUtils.lerp(Math.max(0,-swing)*.8,.18,blend);
+ rig.legs[i].foot.rotation.x=T.MathUtils.lerp(-swing*.4,.25,blend);
+ rig.arms[i].joint.rotation.x=T.MathUtils.lerp(swimming?Math.sin(clock*5+i*Math.PI)*.8:-swing*.85,-.7+Math.sin(clock*2+i)*.035,blend);rig.arms[i].elbow.rotation.x=-.2;}
+ matGroup.visible=state.seat>.05;matGroup.quaternion.slerp(boardRotation,1-Math.exp(-20*dt));matGroup.position.copy(state.position).add(v(0,.08,0).applyQuaternion(matGroup.quaternion));
+ if(state.mode==='ride'){const lift=Math.max(0,.035-boardClearance());state.boardLift=lift;state.position.y+=lift;matGroup.position.y+=lift;rig.root.position.y+=lift;}
+ shadow.visible=state.mode==='walk';shadow.position.set(state.position.x,.025,state.position.z);
+ wake.forEach((m,i)=>{m.visible=state.mode==='ride';if(m.visible){const f=trackFrame(Math.max(0,state.phase-(.7+(i%8)*.22)/length)),side=state.lane+(i<8?-1:1)*(.35+Math.sin(clock*16+i)*.08);m.position.copy(f.p).addScaledVector(f.right,side).addScaledVector(UP,.08+Math.sin(clock*12+i)*.025);}});
 }
 function update(dt){clock+=dt;if(clock>feedbackUntil)$('feedback').classList.remove('visible');flowMap.offset.y=-clock*.65;poolWater.offset.set(Math.sin(clock*.13)*.08,-clock*.025);for(let i=0;i<poolRings.length;i++){const r=poolRings[i],s=.4+((clock*.4+i*.3)%1)*1.7;r.scale.set(s,s,s);r.material.opacity=.25*(1-(s-.4)/1.7);}
-for(const h of hazards){const f=trackFrame(h.at);h.mesh.position.copy(f.p).addScaledVector(f.right,h.lane).addScaledVector(UP,.65+Math.sin(clock*2+h.at)*.03);h.mesh.material.rotation=Math.sin(clock*1.2+h.at)*.06;}
-if(state.mode==='walk')walking(dt);else if(state.mode==='climb')climb(dt);else if(state.mode==='platform'){state.phase+=dt;if(state.phase>1.2){state.phase=0;state.lane=0;state.laneSpeed=0;dragLane=null;setMode('ride');say('Рули ← →. Впереди утята и буйки!');}}
-else if(state.mode==='ride')riding(dt);else if(state.mode==='splash'){state.phase+=dt;state.position.y=.2-state.phase*.25;state.position.z=18+state.phase*1.5;if(state.phase>1.4){state.phase=0;setMode('exit');}}
+for(const h of hazards){const push=h.pushed?T.MathUtils.smoothstep(clock-h.pushedAt,0,.6):0,f=trackFrame(h.at),lane=h.lane+(h.pushed||0)*push*.48,bank=FLUME_RADIUS-Math.sqrt(FLUME_RADIUS**2-lane**2);h.mesh.position.copy(f.p).addScaledVector(f.right,lane).addScaledVector(UP,bank+.08+Math.sin(clock*3+h.at)*.025);h.mesh.rotation.set(0,Math.sin(clock*1.2+h.at)*.1+push*2,Math.sin(clock*2+h.at)*.04);}
+if(state.mode==='walk')walking(dt);else if(state.mode==='climb')climb(dt);else if(state.mode==='platform'){state.phase+=dt;const turn=T.MathUtils.smoothstep(state.phase,0,.65),end=track.getPointAt(0).addScaledVector(UP,.15),glide=T.MathUtils.clamp((state.phase-.55)/.85,0,1)**2;state.position.lerpVectors(launchFrom,end,glide);const desiredHeading=Math.atan2(trackFrame(0).f.x,trackFrame(0).f.z);state.heading+=((desiredHeading-state.heading+Math.PI*3)%(Math.PI*2)-Math.PI)*turn*(1-Math.exp(-10*dt));if(state.phase>=1.4){state.position.copy(end);state.phase=0;state.speed=4;state.rideTime=0;state.lane=0;state.laneSpeed=0;dragLane=null;setMode('ride');say('Рули ← →. Держись за коврик!');}}
+else if(state.mode==='ride')riding(dt);else if(state.mode==='splash'){state.phase+=dt;const settle=T.MathUtils.smoothstep(state.phase,0,1.4);state.position.lerpVectors(splashFrom,v(10,-.15,20.1),settle);if(state.phase>1.4){state.phase=0;setMode('exit');}}
 else if(state.mode==='exit'){state.phase=Math.min(1,state.phase+dt*.33);state.position.set(10-5.6*state.phase,-.5+Math.max(0,state.phase-.68)/.32*.5,20.1+state.phase*3.9);state.heading=-Math.PI/2;if(state.phase===1){state.finished=true;state.position.y=0;setMode('walk');$('go').innerHTML='Ещё круг <span>→</span>';$('instruction').textContent='Круг пройден! Можно погулять или прокатиться ещё раз.';$('progress').style.width='100%';say('Полный круг! '+state.score+' очков за манёвры.');}}
 particles.forEach((p,i)=>{const t=clock-finishedAt;p.mesh.visible=state.mode==='splash'&&t<1.5;if(p.mesh.visible){p.mesh.position.set(10+Math.cos(p.angle)*p.speed*t,.35+p.speed*t-3*t*t,18+Math.sin(p.angle)*p.speed*t);p.mesh.material.opacity=Math.max(0,.8-t*.5);}});pose(dt);}
 const desired=new T.Vector3(),lookTarget=new T.Vector3(),smoothLook=v(0,5,0);
-function cameraUpdate(dt){if(overview||state.mode==='menu'){desired.set(39,30,43);lookTarget.set(-1,6,1);}else if(state.mode==='ride'){const f=trackFrame(state.phase);desired.copy(state.position).addScaledVector(f.f,-8.4).addScaledVector(UP,5);lookTarget.copy(track.getPointAt(Math.min(1,state.phase+.025))).addScaledVector(UP,.6);}else if(['climb','platform'].includes(state.mode)){desired.copy(state.position).add(v(8,5.5,10));lookTarget.copy(state.position).add(v(0,1.3,0));}else{desired.copy(state.position).add(v(12,10,16));lookTarget.copy(state.position).add(v(0,1.6,0));}const a=1-Math.exp(-dt*(state.mode==='ride'?5:3));camera.position.lerp(desired,a);smoothLook.lerp(lookTarget,a);camera.lookAt(smoothLook);}
+function rideCamera(t){const f=trackFrame(t),back=Math.max(0,t-5.8/length);desired.copy(track.getPointAt(back)).addScaledVector(UP,3.2);if(t<5.8/length)desired.addScaledVector(trackFrame(0).f,-(5.8-t*length));lookTarget.copy(f.p).addScaledVector(f.f,2.4).addScaledVector(UP,.8);}
+function cameraUpdate(dt){
+ if(overview||state.mode==='menu'){desired.set(39,30,43);lookTarget.set(-1,6,1);}
+ else if(state.mode==='ride')rideCamera(state.phase);
+ else if(state.mode==='platform'){const blend=T.MathUtils.smoothstep(state.phase,0,1.2),start=state.position.clone().add(v(8,5.5,10));rideCamera(0);desired.lerpVectors(start,desired.clone(),blend);lookTarget.lerpVectors(state.position.clone().add(v(0,1,0)),lookTarget.clone(),blend);}
+ else if(state.mode==='climb'){desired.copy(state.position).add(v(8,5.5,10));lookTarget.copy(state.position).add(v(0,1.3,0));}
+ else if(['splash','exit'].includes(state.mode)){desired.copy(state.position).add(v(6,5,8));lookTarget.copy(state.position).add(v(0,.6,0));}
+ else{desired.copy(state.position).add(v(12,10,16));lookTarget.copy(state.position).add(v(0,1.6,0));}
+ const follow=state.mode==='ride'?16:state.mode==='platform'?6:4,a=1-Math.exp(-dt*follow);camera.position.lerp(desired,a);smoothLook.lerp(lookTarget,a);camera.lookAt(smoothLook);
+ const fov=state.mode==='ride'?52+T.MathUtils.clamp((state.speed-4)*.45,0,9):52;camera.fov=T.MathUtils.damp(camera.fov,fov,4,dt);camera.updateProjectionMatrix();
+}
 camera.position.set(39,30,43);camera.lookAt(smoothLook);
 function resize(){renderer.setPixelRatio(software?Math.min(1,1000/innerWidth,700/innerHeight):Math.min(devicePixelRatio,1.5));camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);}
 addEventListener('resize',resize);resize();
@@ -141,5 +196,5 @@ renderer.domElement.addEventListener('pointerleave',()=>dragLane=null);
 document.querySelectorAll('[data-key]').forEach(b=>{b.addEventListener('pointerdown',e=>{e.preventDefault();b.setPointerCapture(e.pointerId);held.add(b.dataset.key);});for(const name of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(name,()=>held.delete(b.dataset.key));});
 $('start').disabled=false;$('start').textContent='Попробовать →';
 // Read-only diagnostics plus time stepping for browser regression checks.
-window.sliceTest={get state(){return{...state,position:state.position.toArray(),camera:camera.position.toArray(),feet:rig.legs.map(l=>{const p=l.foot.getWorldPosition(new T.Vector3()).project(camera);return{x:p.x,y:p.y,visible:Math.abs(p.x)<1&&Math.abs(p.y)<1};})};},get ready(){return true;},update(dt){update(dt);cameraUpdate(dt);},get drawCalls(){return renderer.info.render.calls;},get screen(){camera.updateMatrixWorld();const hero=state.position.clone().project(camera),center=track.getPointAt(Math.min(1,state.phase)).project(camera);return{heroX:hero.x,centerX:center.x};},get length(){return length;},get track(){return track;},get rig(){return rig;}};
+window.sliceTest={get state(){return{...state,position:state.position.toArray(),camera:camera.position.toArray(),feet:rig.legs.map(l=>{const p=l.foot.getWorldPosition(new T.Vector3()).project(camera);return{x:p.x,y:p.y,visible:Math.abs(p.x)<1&&Math.abs(p.y)<1};})};},get ready(){return true;},update(dt){update(dt);cameraUpdate(dt);},get drawCalls(){return renderer.info.render.calls;},get screen(){camera.updateMatrixWorld();const hero=state.position.clone().project(camera),center=track.getPointAt(Math.min(1,state.phase)).project(camera);return{heroX:hero.x,centerX:center.x};},get cameraBlocked(){camera.updateMatrixWorld();const target=state.position.clone().addScaledVector(UP,.6),d=target.clone().sub(camera.position),ray=new T.Raycaster(camera.position,d.clone().normalize(),.08,Math.max(.1,d.length()-.5));return ray.intersectObjects(cameraBlockers,false).length>0;},get supports(){return supports;},get board(){return matGroup;},get clearance(){return boardClearance();},get length(){return length;},get track(){return track;},get rig(){return rig;}};
 })();
