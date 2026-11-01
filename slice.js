@@ -85,17 +85,27 @@ const curvePoints=[];if(isKamikaze){
   for(const p of [[-10,2.2,-39],[-5,2.3,-43],[4,2.3,-40],[15,2.0,-31],[24,1.7,-16],[22,1.4,0],[16,.95,13],[10,.55,24]])curvePoints.push(v(...p));
 }else if(isFlush){
   // A real broad open bowl: three complete orbits, an open central drain and vertical drop.
-  curvePoints.push(v(-10,14,0),v(-10,14,7),v(-5,13,16),v(0,11.5,22));
+  // Long open flume followed by a dark tube, only then the giant final bowl.
+  for(const p of [[-10,14,0],[-9,13,8],[-4,11,19],[8,10,30],[23,9,36],[36,8,31],[40,7,17],[34,6,5],[24,5,-5],[16,4.7,-12],[8,4.5,-15],[2,4.5,-11]])curvePoints.push(v(...p));
   const cx=12,cz=22,outer=11.5,inner=2.5,turns=3;
-  for(let i=0;i<=300;i++){const q=i/300,a=Math.PI+q*turns*Math.PI*2,r=outer-1.1-(outer-1.1-inner)*q;
+  for(let i=0;i<=300;i++){const q=i/300,a=-Math.PI*.5+q*turns*Math.PI*2,r=outer-1.1-(outer-1.1-inner)*q;
     curvePoints.push(v(cx+Math.cos(a)*r,3.9+(r-inner)*.79,cz+Math.sin(a)*r));}
   // The centre drains vertically, directly into the pool below.
-  for(const p of [[10,4.4,22],[12,3.9,22],[12,2.4,22],[12,1.3,22],[12,.55,22]])curvePoints.push(v(...p));
+  for(const p of [[12,4.4,22],[12,3.9,22],[12,2.4,22],[12,1.3,22],[12,.55,22]])curvePoints.push(v(...p));
 }else if(isTunnel){for(const p of [[-10,14,0],[-14,13.5,-16],[-9,12.8,-33],[9,12,-43],[30,11.2,-38],[43,10.4,-19],[39,9.6,4],[25,8.8,17],[7,8,14],[-10,7.2,10],[-23,6.4,21],[-23,5.6,37],[-8,4.8,43],[8,4,39],[21,3.2,31],[18,1.8,22],[10,.55,24]])curvePoints.push(v(...p));}
 else{for(let i=0;i<=160;i++){const t=i/160,a=Math.PI+t*Math.PI*5;curvePoints.push(v(10*Math.cos(a),14-12*t,10*Math.sin(a)));}curvePoints.push(v(10,1.5,4),v(10,.9,10),v(10,.55,18));}
 const track=new T.CatmullRomCurve3(curvePoints);const length=track.getLength(),outlet=track.getPointAt(1),splashTarget=outlet.clone().addScaledVector(track.getTangentAt(1).setY(0).normalize(),2.1);splashTarget.y=-.15;splashTarget.x=T.MathUtils.clamp(splashTarget.x,7,17);splashTarget.z=T.MathUtils.clamp(splashTarget.z,16,27);if(isTunnel)poolRings.forEach((r,i)=>r.position.z=22+i);
 function trackFrame(t){t=T.MathUtils.clamp(t,0,1);const p=track.getPointAt(t),f=track.getTangentAt(t).normalize(),right=new T.Vector3().crossVectors(f,UP);if(right.lengthSq()<.00001)right.set(1,0,0);else right.normalize();return{p,f,right};}
 function flume(water=false,collision=false){const n=Math.ceil(length*(collision?.75:3.2)),m=collision?(isTunnel?20:12):water?6:isTunnel?36:20,positions=[],uv=[],indices=[];for(let i=0;i<=n;i++){const f=trackFrame(i/n);for(let j=0;j<=m;j++){const a=(j/m-.5)*(water?.98:Math.PI*(isTunnel?2:1.05)),r=courseRadius(i/n);const p=f.p.clone().addScaledVector(f.right,Math.sin(a)*r).addScaledVector(UP,r*(1-Math.cos(a))+(water?.055:0));positions.push(p.x,p.y,p.z);uv.push(j/m,i/n*length/5);if(i<n&&j<m){const k=i*(m+1)+j;indices.push(k,k+m+1,k+1,k+1,k+m+1,k+m+2);}}}const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(positions,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex(indices);g.computeVertexNormals();return g;}
+// Enclosed tunnel section in the middle of the long Super Flush ride, away from the final bowl.
+if(isFlush){
+ const tunnelStart=.16,tunnelEnd=.31,parts=36;
+ for(let i=0;i<=parts;i++){
+  const t=tunnelStart+(tunnelEnd-tunnelStart)*i/parts,f=trackFrame(t),r=2.15,pts=[];
+  for(let j=0;j<=32;j++){const a=j/32*Math.PI*2;pts.push(f.p.clone().addScaledVector(f.right,Math.sin(a)*r).addScaledVector(UP,r-r*Math.cos(a)));}
+  const rib=mesh(new T.TubeGeometry(new T.CatmullRomCurve3(pts,true),32,.055,5,true),mat(i%3===0?0xffdc8a:0x98efff));markInteractive(rib);
+ }
+}
 // The funnel is a single broad visible surface with an actual circular hole, not a tube pretending to be a bowl.
 if(isFlush){
  const cx=12,cz=22,inner=2.5,outer=11.5,N=100,M=24,verts=[],uv=[],ind=[];
@@ -117,8 +127,8 @@ if(isKamikaze){
  loopRing.rotation.y=Math.PI/2;
 }
 const wallMap=tile(art,isTunnel||isFlush?3:2,0,4,2),flowMap=tile(art,0,0,4,2);
-const slideMesh=mesh(flume(),mat(isTunnel?0xe9faff:isKamikaze?0xffb5ad:isFlush?0xf5eafa:0xffefdb,{map:wallMap,side:T.DoubleSide,roughness:.28,emissive:isTunnel?0x173c75:isKamikaze?0x4a0800:0x000000,emissiveIntensity:.65}));markInteractive(slideMesh);slideMesh.castShadow=true;slideMesh.receiveShadow=true;if(isFlush)slideMesh.material.transparent=true;if(isFlush){slideMesh.material.opacity=0;slideMesh.visible=false;}if(isKamikaze){slideMesh.material.transparent=false;slideMesh.material.opacity=1;}
-const flow=mesh(flume(true),mat(0x85ebf0,{map:flowMap,side:T.DoubleSide,transparent:true,opacity:.78,roughness:.15,depthWrite:false}));markInteractive(flow);if(isFlush){flow.material.opacity=0;flow.visible=false;}if(isKamikaze){flow.material.opacity=.98;flow.material.color.setHex(0x18dfff);flow.material.emissive=new T.Color(0x087da0);flow.material.emissiveIntensity=.35;flow.material.depthWrite=true;}
+const slideMesh=mesh(flume(),mat(isTunnel?0xe9faff:isKamikaze?0xffb5ad:isFlush?0xf5eafa:0xffefdb,{map:wallMap,side:T.DoubleSide,roughness:.28,emissive:isTunnel?0x173c75:isKamikaze?0x4a0800:0x000000,emissiveIntensity:.65}));markInteractive(slideMesh);slideMesh.castShadow=true;slideMesh.receiveShadow=true;if(isFlush)slideMesh.material.transparent=true;if(isFlush){slideMesh.material.opacity=.85;slideMesh.visible=true;}if(isKamikaze){slideMesh.material.transparent=false;slideMesh.material.opacity=1;}
+const flow=mesh(flume(true),mat(0x85ebf0,{map:flowMap,side:T.DoubleSide,transparent:true,opacity:.78,roughness:.15,depthWrite:false}));markInteractive(flow);if(isFlush){flow.material.opacity=.86;flow.visible=true;}if(isKamikaze){flow.material.opacity=.98;flow.material.color.setHex(0x18dfff);flow.material.emissive=new T.Color(0x087da0);flow.material.emissiveIntensity=.35;flow.material.depthWrite=true;}
 if(!isTunnel&&!isFlush)for(const side of [-1,1]){const ps=[];for(let i=0;i<=500;i++){const f=trackFrame(i/500);ps.push(f.p.addScaledVector(f.right,side*1.475).addScaledVector(UP,1.6));}const lip=mesh(new T.TubeGeometry(new T.CatmullRomCurve3(ps),520,.075,6,false),rail);markInteractive(lip);}
 // Luminous ribs reveal depth, curves and the three widened tunnel chambers.
 if(isTunnel){const colors=[0x91f8ff,0xd6adff,0xffe6ad],materials=colors.map(color=>new T.MeshBasicMaterial({color}));const count=Math.ceil(length/6);for(let i=0;i<=count;i++){const t=i/count,f=trackFrame(t),r=courseRadius(t)-.045,points=[];for(let j=0;j<=64;j++){const a=j/64*Math.PI*2;points.push(f.p.clone().addScaledVector(f.right,Math.sin(a)*r).addScaledVector(UP,courseRadius(t)-Math.cos(a)*r));}markInteractive(mesh(new T.TubeGeometry(new T.CatmullRomCurve3(points,true),64,i===0||i===count?.11:.045,6,true),materials[i%3]));}}
@@ -187,7 +197,7 @@ function riding(dt){
  state.laneSpeed+=(wanted-state.laneSpeed)*(1-Math.exp(-8*dt));state.lane=T.MathUtils.clamp(state.lane+state.laneSpeed*dt,-LANE_LIMIT,LANE_LIMIT);
  if(Math.abs(state.lane)===LANE_LIMIT&&Math.sign(state.laneSpeed)===Math.sign(state.lane))state.laneSpeed*=Math.exp(-14*dt);
  const before=trackFrame(state.phase),targetSpeed=isKamikaze?43+Math.max(0,-before.f.y)*15:isFlush?25+Math.max(0,-before.f.y)*9:21+Math.max(0,-before.f.y)*12;
- state.speed+=(targetSpeed-state.speed)*(1-Math.exp(-1.3*dt));state.rideTime+=dt;state.phase=Math.min(1,state.phase+state.speed*dt/length);if(isFlush){const q=state.phase;if(q>.12&&q<.96){const completed=Math.min(3,Math.floor((q-.12)/.28)+1);$('instruction').textContent='Воронка: '+completed+' / 3 круга — затем смыв в отверстие!';}else if(q>=.96){$('instruction').textContent='СМЫВ! Падаем прямо в бассейн!';}}
+ state.speed+=(targetSpeed-state.speed)*(1-Math.exp(-1.3*dt));state.rideTime+=dt;state.phase=Math.min(1,state.phase+state.speed*dt/length);if(isFlush){$('instruction').textContent=state.phase<.38?'Открытая горка → тоннель. Рули стрелками или A/D.':state.phase<.96?'Три круга в воронке! Рули влево-вправо.':'СМЫВ! Падение в бассейн!';}
  const f=trackFrame(state.phase),radius=courseRadius(state.phase),bank=radius-Math.sqrt(radius**2-state.lane**2);
  state.position.copy(f.p).addScaledVector(f.right,state.lane).addScaledVector(UP,bank+.15);state.heading=Math.atan2(f.f.x,f.f.z);
  const ahead=trackFrame(Math.min(1,state.phase+.012)),bend=f.f.x*ahead.f.z-f.f.z*ahead.f.x;
@@ -241,9 +251,10 @@ function rideCamera(t){
    desired.set(12,13,-32);lookTarget.set(-10,8,-32);return;
  }
  if(isFlush){
-   // Permanent outside overhead view keeps the full bowl, rider, drain and falling motion in frame.
-   desired.set(35,32,49);
-   lookTarget.set(12,4.7,22);
+   // First-person ride view with visible feet and lane steering, including bowl orbits and drain.
+   const ahead=trackFrame(Math.min(1,t+.009));
+   desired.copy(f.p).addScaledVector(UP,1.15).addScaledVector(f.f,-.95).addScaledVector(f.right,state.lane*.55);
+   lookTarget.copy(ahead.p).addScaledVector(UP,.85).addScaledVector(ahead.right,state.lane*.65);
    return;
  }
  const distance=isTunnel?3.8:5.8,height=isTunnel?2.05:3.2,back=Math.max(0,t-distance/length);
@@ -263,7 +274,7 @@ function cameraUpdate(dt){
  else if(state.mode==='climb'){desired.copy(state.position).add(v(-4.8,3.1,stairSegment>=23?-7:7));lookTarget.copy(state.position).add(v(0,1.3,0));}
  else if(['splash','exit'].includes(state.mode)){desired.copy(state.position).add(isTunnel?trackFrame(1).f.clone().setY(0).normalize().multiplyScalar(7).add(v(0,4.3,0)):v(6,5,8));lookTarget.copy(state.position).add(v(0,.6,0));}
  else{desired.copy(state.position).add(v(12,10,16));lookTarget.copy(state.position).add(v(0,1.6,0));}
- const focus=cameraFocus(),protectedView=!overview&&state.mode!=='menu'&&!(isFlush&&state.mode==='ride');if(protectedView){if(state.mode==='walk'||state.mode==='climb')chooseOutdoorView(desired,focus);constrainCamera(desired,focus);}const follow=state.mode==='ride'?(isFlush?5:16):state.mode==='platform'?6:4,a=1-Math.exp(-dt*follow);camera.position.lerp(desired,a);if(protectedView){constrainCamera(camera.position,focus);if(['walk','climb'].includes(state.mode)&&camera.position.distanceTo(focus)<5&&cameraFraction(desired,focus)>.999)camera.position.copy(desired);}smoothLook.lerp(lookTarget,a);camera.lookAt(smoothLook);
+ const focus=cameraFocus(),protectedView=!overview&&state.mode!=='menu'&&!(isFlush&&state.mode==='ride');if(protectedView){if(state.mode==='walk'||state.mode==='climb')chooseOutdoorView(desired,focus);constrainCamera(desired,focus);}const follow=state.mode==='ride'?(isFlush?18:16):state.mode==='platform'?6:4,a=1-Math.exp(-dt*follow);camera.position.lerp(desired,a);if(protectedView){constrainCamera(camera.position,focus);if(['walk','climb'].includes(state.mode)&&camera.position.distanceTo(focus)<5&&cameraFraction(desired,focus)>.999)camera.position.copy(desired);}smoothLook.lerp(lookTarget,a);camera.lookAt(smoothLook);
  const fov=state.mode==='ride'?(isTunnel?62:isKamikaze?72:isFlush?62:52)+T.MathUtils.clamp((state.speed-4)*.45,0,9):52;camera.fov=T.MathUtils.damp(camera.fov,fov,4,dt);camera.updateProjectionMatrix();
 }
 camera.position.set(39,30,43);camera.lookAt(smoothLook);
