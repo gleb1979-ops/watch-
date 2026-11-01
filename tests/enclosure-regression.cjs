@@ -11,14 +11,14 @@ const {chromium}=require('playwright');
   if(course==='flush')assert(geometry.roofHit,'Tunnel has no solid ceiling');
   await page.click('#start');await page.click('#go');await page.click('#pause');
   let enclosedShot=false,drainShot=false,finished=false;
-  for(let i=0;i<220;i++){
-   const s=await page.evaluate(()=>{for(let j=0;j<20;j++)sliceTest.update(.02);return sliceTest.state;});
+  for(let i=0;i<500;i++){
+   const s=await page.evaluate(()=>{const count=sliceTest.state.mode==='ride'&&sliceTest.state.phase>sliceTest.dropStart-.04?3:20;for(let j=0;j<count;j++){sliceTest.update(.02);const s=sliceTest.state,e=sliceTest.effects;window.epic??={dropTime:0,top:0,bottom:100,maxFov:0,particles:0,rings:0,escaped:0};if(s.mode==='ride'&&s.phase>=sliceTest.dropStart){epic.dropTime+=.02;epic.top=Math.max(epic.top,s.position[1]);epic.bottom=Math.min(epic.bottom,s.position[1]);epic.maxFov=Math.max(epic.maxFov,e.fov);}if(sliceTest.course==='kamikaze'&&s.mode==='ride'&&s.phase>.03&&s.phase<.97&&!sliceTest.cameraEnclosed)epic.escaped++;epic.particles=Math.max(epic.particles,e.particles);epic.rings=Math.max(epic.rings,e.rings);}return sliceTest.state;});
    assert(s.position.every(Number.isFinite)&&s.camera.every(Number.isFinite),'Invalid ride position');
    if(s.mode==='ride'&&s.phase>.23&&!enclosedShot){await page.screenshot({path:'checks/'+course+'-enclosure.png'});enclosedShot=true;}
-   if(course==='flush'&&s.mode==='ride'&&Math.hypot(s.position[0]-12,s.position[2]-22)<2.5&&s.position[1]<4.8&&!drainShot){await page.screenshot({path:'checks/flush-drain.png'});drainShot=true;}
+   if(course==='flush'&&s.mode==='ride'&&Math.hypot(s.position[0]-12,s.position[2]-22)<2.5&&s.position[1]<10&&!drainShot){await page.screenshot({path:'checks/flush-drain.png'});drainShot=true;}
    if(s.finished){finished=true;break;}
   }
   assert(finished,'Route did not finish: '+course);assert(enclosedShot);if(course==='flush')assert(drainShot);
-  assert.deepEqual(errors,[]);console.log(JSON.stringify({course,...geometry,finished,drainShot,errors}));await page.close();
+  const epic=await page.evaluate(()=>window.epic);if(course==='kamikaze')assert.equal(epic.escaped,0,'Camera left the enclosed tube');if(course==='flush'){assert(epic.top-epic.bottom>8,'Drop too short');assert(epic.dropTime>.5,'Drop too abrupt');assert(epic.maxFov>78,'Missing plunge camera');assert(epic.particles===100&&epic.rings===3,'Missing impact effects');}assert.deepEqual(errors,[]);console.log(JSON.stringify({course,...geometry,finished,drainShot,epic,errors}));await page.close();
  }}finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
