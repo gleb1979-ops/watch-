@@ -56,7 +56,7 @@ const course=process.env.COURSE==='tunnel'?'tunnel':'spiral';
   assert.equal(result.occludedFrames,0,'Scenery blocked the rider camera: '+JSON.stringify(result.blockedSamples));
   await page.click('#view');await page.evaluate(()=>advanceSlice(160));await page.waitForTimeout(100);
   await page.screenshot({path:'checks/'+course+'-overview.png'});
-  const other=course==='tunnel'?'spiral':'tunnel';await Promise.all([page.waitForURL(url=>url.searchParams.get('course')===other),page.click('[data-course="'+other+'"]')]);await page.waitForFunction(other=>window.sliceTest?.state.course===other,other);assert.equal(await page.locator('[data-course="'+other+'"]').getAttribute('aria-pressed'),'true');
+  const other=course==='tunnel'?'spiral':'tunnel';await page.click('#rides-toggle');await Promise.all([page.waitForURL(url=>url.searchParams.get('course')===other),page.click('[data-course="'+other+'"]')]);await page.waitForFunction(other=>window.sliceTest?.state.course===other,other);assert.equal(await page.locator('[data-course="'+other+'"]').getAttribute('aria-pressed'),'true');
   assert.deepEqual(errors,[]);console.log(JSON.stringify({course,...result,directions,errors}));
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
