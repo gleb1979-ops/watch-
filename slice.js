@@ -95,8 +95,21 @@ const curvePoints=[];if(isKamikaze){
 }else if(isTunnel){for(const p of [[-10,14,0],[-14,13.5,-16],[-9,12.8,-33],[9,12,-43],[30,11.2,-38],[43,10.4,-19],[39,9.6,4],[25,8.8,17],[7,8,14],[-10,7.2,10],[-23,6.4,21],[-23,5.6,37],[-8,4.8,43],[8,4,39],[21,3.2,31],[18,1.8,22],[10,.55,24]])curvePoints.push(v(...p));}
 else{for(let i=0;i<=160;i++){const t=i/160,a=Math.PI+t*Math.PI*5;curvePoints.push(v(10*Math.cos(a),14-12*t,10*Math.sin(a)));}curvePoints.push(v(10,1.5,4),v(10,.9,10),v(10,.55,18));}
 const track=new T.CatmullRomCurve3(curvePoints);const length=track.getLength(),outlet=track.getPointAt(1),splashTarget=outlet.clone().addScaledVector(track.getTangentAt(1).setY(0).normalize(),2.1);splashTarget.y=-.15;splashTarget.x=T.MathUtils.clamp(splashTarget.x,7,17);splashTarget.z=T.MathUtils.clamp(splashTarget.z,16,27);if(isTunnel)poolRings.forEach((r,i)=>r.position.z=22+i);
-function trackFrame(t){t=T.MathUtils.clamp(t,0,1);const p=track.getPointAt(t),f=track.getTangentAt(t).normalize(),right=new T.Vector3().crossVectors(f,UP);if(right.lengthSq()<.00001)right.set(1,0,0);else right.normalize();return{p,f,right};}
-function flume(water=false,collision=false){const n=Math.ceil(length*(collision?.75:3.2)),m=collision?(isTunnel?20:12):water?6:isTunnel?36:20,positions=[],uv=[],indices=[];for(let i=0;i<=n;i++){const f=trackFrame(i/n);for(let j=0;j<=m;j++){const a=(j/m-.5)*(water?.98:Math.PI*(isTunnel?2:1.05)),r=courseRadius(i/n);const p=f.p.clone().addScaledVector(f.right,Math.sin(a)*r).addScaledVector(UP,r*(1-Math.cos(a))+(water?.055:0));positions.push(p.x,p.y,p.z);uv.push(j/m,i/n*length/5);if(i<n&&j<m){const k=i*(m+1)+j;indices.push(k,k+m+1,k+1,k+1,k+m+1,k+m+2);}}}const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(positions,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex(indices);g.computeVertexNormals();return g;}
+function trackFrame(t){t=T.MathUtils.clamp(t,0,1);const p=track.getPointAt(t),f=track.getTangentAt(t).normalize(),right=isKamikaze?v(1,0,0).addScaledVector(f,-f.x):new T.Vector3().crossVectors(f,UP);if(right.lengthSq()<.00001)right.set(1,0,0);else right.normalize();return{p,f,right};}
+function flume(water=false,collision=false){
+ const n=Math.ceil(length*(collision?.75:3.2)),m=collision?(isTunnel||isKamikaze?24:12):water?8:isTunnel||isKamikaze?40:20,positions=[],uv=[],indices=[];
+ for(let i=0;i<=n;i++){
+  const f=trackFrame(i/n),r=courseRadius(i/n);
+  const normal=isKamikaze?new T.Vector3().crossVectors(f.right,f.f).normalize():UP;
+  for(let j=0;j<=m;j++){
+   const a=(j/m-.5)*(water?.98:Math.PI*(isTunnel||isKamikaze?2:1.05));
+   const p=f.p.clone().addScaledVector(f.right,Math.sin(a)*r).addScaledVector(normal,r*(1-Math.cos(a))+(water?.055:0));
+   positions.push(p.x,p.y,p.z);uv.push(j/m,i/n*length/5);
+   if(i<n&&j<m){const k=i*(m+1)+j;indices.push(k,k+m+1,k+1,k+1,k+m+1,k+m+2);}
+  }
+ }
+ const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(positions,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex(indices);g.computeVertexNormals();return g;
+}
 // Enclosed tunnel section in the middle of the long Super Flush ride, away from the final bowl.
 if(isFlush){
  const tunnelStart=.16,tunnelEnd=.31,parts=36;
@@ -127,9 +140,9 @@ if(isKamikaze){
  loopRing.rotation.y=Math.PI/2;
 }
 const wallMap=tile(art,isTunnel||isFlush?3:2,0,4,2),flowMap=tile(art,0,0,4,2);
-const slideMesh=mesh(flume(),mat(isTunnel?0xe9faff:isKamikaze?0xffb5ad:isFlush?0xf5eafa:0xffefdb,{map:wallMap,side:T.DoubleSide,roughness:.28,emissive:isTunnel?0x173c75:isKamikaze?0x4a0800:0x000000,emissiveIntensity:.65}));markInteractive(slideMesh);slideMesh.castShadow=true;slideMesh.receiveShadow=true;if(isFlush)slideMesh.material.transparent=true;if(isFlush){slideMesh.material.opacity=.85;slideMesh.visible=true;}if(isKamikaze){slideMesh.material.transparent=false;slideMesh.material.opacity=1;}
+const slideMesh=mesh(flume(),mat(isTunnel?0xe9faff:isKamikaze?0xffb5ad:isFlush?0xf5eafa:0xffefdb,{map:wallMap,side:T.DoubleSide,roughness:.28,emissive:isTunnel?0x173c75:isKamikaze?0x4a0800:0x000000,emissiveIntensity:.65}));markInteractive(slideMesh);slideMesh.castShadow=true;slideMesh.receiveShadow=true;if(isFlush)slideMesh.material.transparent=true;if(isFlush){slideMesh.material.opacity=.85;slideMesh.visible=true;}if(isKamikaze){slideMesh.material.transparent=true;slideMesh.material.opacity=.66;slideMesh.material.depthWrite=false;slideMesh.material.color.setHex(0xff866d);slideMesh.material.map=null;}
 const flow=mesh(flume(true),mat(0x85ebf0,{map:flowMap,side:T.DoubleSide,transparent:true,opacity:.78,roughness:.15,depthWrite:false}));markInteractive(flow);if(isFlush){flow.material.opacity=1;flow.material.color.setHex(0x18dfff);flow.material.emissive=new T.Color(0x0789c2);flow.material.emissiveIntensity=.7;flow.material.depthTest=true;flow.material.depthWrite=false;flow.renderOrder=4;flow.visible=true;slideMesh.material.opacity=.45;slideMesh.renderOrder=1;}if(isKamikaze){flow.material.opacity=.98;flow.material.color.setHex(0x18dfff);flow.material.emissive=new T.Color(0x087da0);flow.material.emissiveIntensity=.35;flow.material.depthWrite=true;}
-if(!isTunnel&&!isFlush)for(const side of [-1,1]){const ps=[];for(let i=0;i<=500;i++){const f=trackFrame(i/500);ps.push(f.p.addScaledVector(f.right,side*1.475).addScaledVector(UP,1.6));}const lip=mesh(new T.TubeGeometry(new T.CatmullRomCurve3(ps),520,.075,6,false),rail);markInteractive(lip);}
+if(!isTunnel&&!isFlush&&!isKamikaze)for(const side of [-1,1]){const ps=[];for(let i=0;i<=500;i++){const f=trackFrame(i/500);ps.push(f.p.addScaledVector(f.right,side*1.475).addScaledVector(UP,1.6));}const lip=mesh(new T.TubeGeometry(new T.CatmullRomCurve3(ps),520,.075,6,false),rail);markInteractive(lip);}
 // Luminous ribs reveal depth, curves and the three widened tunnel chambers.
 if(isTunnel){const colors=[0x91f8ff,0xd6adff,0xffe6ad],materials=colors.map(color=>new T.MeshBasicMaterial({color}));const count=Math.ceil(length/6);for(let i=0;i<=count;i++){const t=i/count,f=trackFrame(t),r=courseRadius(t)-.045,points=[];for(let j=0;j<=64;j++){const a=j/64*Math.PI*2;points.push(f.p.clone().addScaledVector(f.right,Math.sin(a)*r).addScaledVector(UP,courseRadius(t)-Math.cos(a)*r));}markInteractive(mesh(new T.TubeGeometry(new T.CatmullRomCurve3(points,true),64,i===0||i===count?.11:.045,6,true),materials[i%3]));}}
 // Columns support the outer spiral and the separate S-shaped tunnel.
@@ -139,7 +152,7 @@ const supportCount=isFlush?0:Math.ceil(length/9);
 for(let i=0;i<supportCount;i++){const t=i/supportCount,f=trackFrame(t),out=t>.8&&f.p.x>9.8&&f.p.z>0?v(1,0,0):v(f.p.x,0,f.p.z).normalize(),foot=isTunnel?f.p.clone():f.p.clone().addScaledVector(out,3.2);foot.y=0;const top=foot.clone();top.y=f.p.y-.25;bar(foot,top,.17,steel);if(!isTunnel)bar(top,f.p.clone().addScaledVector(UP,-.25),.13,steel);box(1,.16,1,cream,foot.x,0,foot.z);supports.push({x:foot.x,z:foot.z,height:top.y});}
 // White flume joints show the speed and changing perspective through turns.
 const joints=[],jointCount=Math.ceil(length/2.6);for(let i=1;i<jointCount;i++){const f=trackFrame(i/jointCount),ps=[];for(let j=0;j<=18;j++){const a=(j/18-.5)*Math.PI*(isTunnel?2:1.05),r=courseRadius(i/jointCount)+.006;ps.push(f.p.clone().addScaledVector(f.right,Math.sin(a)*r).addScaledVector(UP,r*(1-Math.cos(a))+.01));}joints.push(...ps.flatMap((p,j)=>j? [...ps[j-1].toArray(),...p.toArray()]:[]));}
-if(isFlush)joints.length=0;
+if(isFlush||isKamikaze)joints.length=0;
 const jointGeo=new T.BufferGeometry();jointGeo.setAttribute('position',new T.Float32BufferAttribute(joints,3));scene.add(new T.LineSegments(jointGeo,new T.LineBasicMaterial({color:0xdcffff,transparent:true,opacity:.6})));
 // Small floating 3D objects replace upright billboard rectangles.
 const hazards=[{at:.15,lane:-.43,kind:1},{at:.28,lane:.43,kind:0},{at:.41,lane:0,kind:2},{at:.54,lane:-.43,kind:1},{at:.68,lane:.43,kind:0},{at:.82,lane:0,kind:2}];
