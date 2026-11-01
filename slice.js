@@ -103,7 +103,7 @@ if(isFlush){
  for(let i=0;i<=parts;i++){
   const t=tunnelStart+(tunnelEnd-tunnelStart)*i/parts,f=trackFrame(t),r=2.15,pts=[];
   for(let j=0;j<=32;j++){const a=j/32*Math.PI*2;pts.push(f.p.clone().addScaledVector(f.right,Math.sin(a)*r).addScaledVector(UP,r-r*Math.cos(a)));}
-  const rib=mesh(new T.TubeGeometry(new T.CatmullRomCurve3(pts,true),32,.055,5,true),mat(i%3===0?0xffdc8a:0x98efff));markInteractive(rib);
+  // No transverse bars inside the rider's tunnel; the enclosing flume remains smooth.
  }
 }
 // The funnel is a single broad visible surface with an actual circular hole, not a tube pretending to be a bowl.
@@ -128,14 +128,14 @@ if(isKamikaze){
 }
 const wallMap=tile(art,isTunnel||isFlush?3:2,0,4,2),flowMap=tile(art,0,0,4,2);
 const slideMesh=mesh(flume(),mat(isTunnel?0xe9faff:isKamikaze?0xffb5ad:isFlush?0xf5eafa:0xffefdb,{map:wallMap,side:T.DoubleSide,roughness:.28,emissive:isTunnel?0x173c75:isKamikaze?0x4a0800:0x000000,emissiveIntensity:.65}));markInteractive(slideMesh);slideMesh.castShadow=true;slideMesh.receiveShadow=true;if(isFlush)slideMesh.material.transparent=true;if(isFlush){slideMesh.material.opacity=.85;slideMesh.visible=true;}if(isKamikaze){slideMesh.material.transparent=false;slideMesh.material.opacity=1;}
-const flow=mesh(flume(true),mat(0x85ebf0,{map:flowMap,side:T.DoubleSide,transparent:true,opacity:.78,roughness:.15,depthWrite:false}));markInteractive(flow);if(isFlush){flow.material.opacity=.86;flow.visible=true;}if(isKamikaze){flow.material.opacity=.98;flow.material.color.setHex(0x18dfff);flow.material.emissive=new T.Color(0x087da0);flow.material.emissiveIntensity=.35;flow.material.depthWrite=true;}
+const flow=mesh(flume(true),mat(0x85ebf0,{map:flowMap,side:T.DoubleSide,transparent:true,opacity:.78,roughness:.15,depthWrite:false}));markInteractive(flow);if(isFlush){flow.material.opacity=1;flow.material.color.setHex(0x18dfff);flow.material.emissive=new T.Color(0x0789c2);flow.material.emissiveIntensity=.7;flow.material.depthTest=true;flow.material.depthWrite=false;flow.renderOrder=4;flow.visible=true;slideMesh.material.opacity=.45;slideMesh.renderOrder=1;}if(isKamikaze){flow.material.opacity=.98;flow.material.color.setHex(0x18dfff);flow.material.emissive=new T.Color(0x087da0);flow.material.emissiveIntensity=.35;flow.material.depthWrite=true;}
 if(!isTunnel&&!isFlush)for(const side of [-1,1]){const ps=[];for(let i=0;i<=500;i++){const f=trackFrame(i/500);ps.push(f.p.addScaledVector(f.right,side*1.475).addScaledVector(UP,1.6));}const lip=mesh(new T.TubeGeometry(new T.CatmullRomCurve3(ps),520,.075,6,false),rail);markInteractive(lip);}
 // Luminous ribs reveal depth, curves and the three widened tunnel chambers.
 if(isTunnel){const colors=[0x91f8ff,0xd6adff,0xffe6ad],materials=colors.map(color=>new T.MeshBasicMaterial({color}));const count=Math.ceil(length/6);for(let i=0;i<=count;i++){const t=i/count,f=trackFrame(t),r=courseRadius(t)-.045,points=[];for(let j=0;j<=64;j++){const a=j/64*Math.PI*2;points.push(f.p.clone().addScaledVector(f.right,Math.sin(a)*r).addScaledVector(UP,courseRadius(t)-Math.cos(a)*r));}markInteractive(mesh(new T.TubeGeometry(new T.CatmullRomCurve3(points,true),64,i===0||i===count?.11:.045,6,true),materials[i%3]));}}
 // Columns support the outer spiral and the separate S-shaped tunnel.
 
 const supports=[];
-const supportCount=Math.ceil(length/9);
+const supportCount=isFlush?0:Math.ceil(length/9);
 for(let i=0;i<supportCount;i++){const t=i/supportCount,f=trackFrame(t),out=t>.8&&f.p.x>9.8&&f.p.z>0?v(1,0,0):v(f.p.x,0,f.p.z).normalize(),foot=isTunnel?f.p.clone():f.p.clone().addScaledVector(out,3.2);foot.y=0;const top=foot.clone();top.y=f.p.y-.25;bar(foot,top,.17,steel);if(!isTunnel)bar(top,f.p.clone().addScaledVector(UP,-.25),.13,steel);box(1,.16,1,cream,foot.x,0,foot.z);supports.push({x:foot.x,z:foot.z,height:top.y});}
 // White flume joints show the speed and changing perspective through turns.
 const joints=[],jointCount=Math.ceil(length/2.6);for(let i=1;i<jointCount;i++){const f=trackFrame(i/jointCount),ps=[];for(let j=0;j<=18;j++){const a=(j/18-.5)*Math.PI*(isTunnel?2:1.05),r=courseRadius(i/jointCount)+.006;ps.push(f.p.clone().addScaledVector(f.right,Math.sin(a)*r).addScaledVector(UP,r*(1-Math.cos(a))+.01));}joints.push(...ps.flatMap((p,j)=>j? [...ps[j-1].toArray(),...p.toArray()]:[]));}
@@ -208,7 +208,7 @@ function riding(dt){
  if(state.phase>=1){splashFrom.copy(state.position);setMode('splash');state.phase=0;finishedAt=clock;say('ПЛЮХ! Трасса пройдена!');}
 }
 const boardContacts=[[-.43,-.95],[.43,-.95],[-.43,.95],[.43,.95],[0,1.135],[-.30,1.07],[.30,1.07]];
-function boardClearance(){let minimum=Infinity;for(const [x,z]of boardContacts){const p=v(x,-.055,z).applyQuaternion(matGroup.quaternion).add(matGroup.position);let t=state.phase;for(let i=0;i<3;i++){const f=trackFrame(t),dx=p.x-f.p.x,dz=p.z-f.p.z;t=T.MathUtils.clamp(t+(dx*f.f.x+dz*f.f.z)/(length*(f.f.x**2+f.f.z**2)),0,1);}const f=trackFrame(t),side=Math.abs(p.clone().sub(f.p).dot(f.right)),radius=courseRadius(t),floor=radius-Math.sqrt(Math.max(0,radius**2-side**2));minimum=Math.min(minimum,p.y-f.p.y-floor);}return minimum;}
+function boardClearance(){let minimum=Infinity;for(const [x,z]of boardContacts){const p=v(x,-.055,z).applyQuaternion(matGroup.quaternion).add(matGroup.position);let t=state.phase;for(let i=0;i<3;i++){const f=trackFrame(t),dx=p.x-f.p.x,dz=p.z-f.p.z;const horizontal=f.f.x**2+f.f.z**2;if(horizontal>.0001)t=T.MathUtils.clamp(t+(dx*f.f.x+dz*f.f.z)/(length*horizontal),0,1);}const f=trackFrame(t),side=Math.abs(p.clone().sub(f.p).dot(f.right)),radius=courseRadius(t),floor=radius-Math.sqrt(Math.max(0,radius**2-side**2));minimum=Math.min(minimum,p.y-f.p.y-floor);}return minimum;}
 function pose(dt){
  const seated=['platform','ride','splash'].includes(state.mode),swimming=state.mode==='exit';
  state.seat=T.MathUtils.damp(state.seat,seated?1:0,7,dt);
@@ -233,7 +233,7 @@ function pose(dt){
  rig.legs[i].foot.rotation.x=T.MathUtils.lerp(-swing*.4,.25,blend);
  rig.arms[i].joint.rotation.x=T.MathUtils.lerp(swimming?Math.sin(clock*5+i*Math.PI)*.8:-swing*.85,-.7+Math.sin(clock*2+i)*.035,blend);rig.arms[i].elbow.rotation.x=-.2;}
  matGroup.visible=state.seat>.05;matGroup.quaternion.slerp(boardRotation,1-Math.exp(-20*dt));matGroup.position.copy(state.position).add(v(0,.08,0).applyQuaternion(matGroup.quaternion));
- if(state.mode==='ride'){const lift=Math.max(0,.035-boardClearance());state.boardLift=lift;state.position.y+=lift;matGroup.position.y+=lift;rig.root.position.y+=lift;}
+ if(state.mode==='ride'){const clearance=boardClearance(),lift=isFlush&&state.phase>.94?0:Math.max(0,.035-(Number.isFinite(clearance)?clearance:.035));state.boardLift=lift;state.position.y+=lift;matGroup.position.y+=lift;rig.root.position.y+=lift;}
  shadow.visible=state.mode==='walk';shadow.position.set(state.position.x,.025,state.position.z);
  wake.forEach((m,i)=>{m.visible=state.mode==='ride';if(m.visible){const f=trackFrame(Math.max(0,state.phase-(.7+(i%8)*.22)/length)),side=state.lane+(i<8?-1:1)*(.35+Math.sin(clock*16+i)*.08);m.position.copy(f.p).addScaledVector(f.right,side).addScaledVector(UP,.08+Math.sin(clock*12+i)*.025);}});
 }
