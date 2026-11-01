@@ -114,9 +114,9 @@ if(isKamikaze){
  loopRing.rotation.y=Math.PI/2;
 }
 const wallMap=tile(art,isTunnel||isFlush?3:2,0,4,2),flowMap=tile(art,0,0,4,2);
-const slideMesh=mesh(flume(),mat(isTunnel?0xe9faff:isKamikaze?0xffb5ad:isFlush?0xf5eafa:0xffefdb,{map:wallMap,side:T.DoubleSide,roughness:.28,emissive:isTunnel?0x173c75:isKamikaze?0x4a0800:0x000000,emissiveIntensity:.65}));markInteractive(slideMesh);slideMesh.castShadow=true;slideMesh.receiveShadow=true;if(isFlush)slideMesh.material.transparent=true;if(isFlush)slideMesh.material.opacity=.16;if(isKamikaze){slideMesh.material.transparent=true;slideMesh.material.opacity=.6;}
-const flow=mesh(flume(true),mat(0x85ebf0,{map:flowMap,side:T.DoubleSide,transparent:true,opacity:.78,roughness:.15,depthWrite:false}));markInteractive(flow);if(isFlush){flow.material.opacity=.24;}if(isKamikaze){flow.material.opacity=.36;}
-if(!isTunnel)for(const side of [-1,1]){const ps=[];for(let i=0;i<=500;i++){const f=trackFrame(i/500);ps.push(f.p.addScaledVector(f.right,side*1.475).addScaledVector(UP,1.6));}const lip=mesh(new T.TubeGeometry(new T.CatmullRomCurve3(ps),520,.075,6,false),rail);markInteractive(lip);}
+const slideMesh=mesh(flume(),mat(isTunnel?0xe9faff:isKamikaze?0xffb5ad:isFlush?0xf5eafa:0xffefdb,{map:wallMap,side:T.DoubleSide,roughness:.28,emissive:isTunnel?0x173c75:isKamikaze?0x4a0800:0x000000,emissiveIntensity:.65}));markInteractive(slideMesh);slideMesh.castShadow=true;slideMesh.receiveShadow=true;if(isFlush)slideMesh.material.transparent=true;if(isFlush){slideMesh.material.opacity=0;slideMesh.visible=false;}if(isKamikaze){slideMesh.material.transparent=true;slideMesh.material.opacity=.6;}
+const flow=mesh(flume(true),mat(0x85ebf0,{map:flowMap,side:T.DoubleSide,transparent:true,opacity:.78,roughness:.15,depthWrite:false}));markInteractive(flow);if(isFlush){flow.material.opacity=0;flow.visible=false;}if(isKamikaze){flow.material.opacity=.36;}
+if(!isTunnel&&!isFlush)for(const side of [-1,1]){const ps=[];for(let i=0;i<=500;i++){const f=trackFrame(i/500);ps.push(f.p.addScaledVector(f.right,side*1.475).addScaledVector(UP,1.6));}const lip=mesh(new T.TubeGeometry(new T.CatmullRomCurve3(ps),520,.075,6,false),rail);markInteractive(lip);}
 // Luminous ribs reveal depth, curves and the three widened tunnel chambers.
 if(isTunnel){const colors=[0x91f8ff,0xd6adff,0xffe6ad],materials=colors.map(color=>new T.MeshBasicMaterial({color}));const count=Math.ceil(length/6);for(let i=0;i<=count;i++){const t=i/count,f=trackFrame(t),r=courseRadius(t)-.045,points=[];for(let j=0;j<=64;j++){const a=j/64*Math.PI*2;points.push(f.p.clone().addScaledVector(f.right,Math.sin(a)*r).addScaledVector(UP,courseRadius(t)-Math.cos(a)*r));}markInteractive(mesh(new T.TubeGeometry(new T.CatmullRomCurve3(points,true),64,i===0||i===count?.11:.045,6,true),materials[i%3]));}}
 // Columns support the outer spiral and the separate S-shaped tunnel.
@@ -126,6 +126,7 @@ const supportCount=Math.ceil(length/9);
 for(let i=0;i<supportCount;i++){const t=i/supportCount,f=trackFrame(t),out=t>.8&&f.p.x>9.8&&f.p.z>0?v(1,0,0):v(f.p.x,0,f.p.z).normalize(),foot=isTunnel?f.p.clone():f.p.clone().addScaledVector(out,3.2);foot.y=0;const top=foot.clone();top.y=f.p.y-.25;bar(foot,top,.17,steel);if(!isTunnel)bar(top,f.p.clone().addScaledVector(UP,-.25),.13,steel);box(1,.16,1,cream,foot.x,0,foot.z);supports.push({x:foot.x,z:foot.z,height:top.y});}
 // White flume joints show the speed and changing perspective through turns.
 const joints=[],jointCount=Math.ceil(length/2.6);for(let i=1;i<jointCount;i++){const f=trackFrame(i/jointCount),ps=[];for(let j=0;j<=18;j++){const a=(j/18-.5)*Math.PI*(isTunnel?2:1.05),r=courseRadius(i/jointCount)+.006;ps.push(f.p.clone().addScaledVector(f.right,Math.sin(a)*r).addScaledVector(UP,r*(1-Math.cos(a))+.01));}joints.push(...ps.flatMap((p,j)=>j? [...ps[j-1].toArray(),...p.toArray()]:[]));}
+if(isFlush)joints.length=0;
 const jointGeo=new T.BufferGeometry();jointGeo.setAttribute('position',new T.Float32BufferAttribute(joints,3));scene.add(new T.LineSegments(jointGeo,new T.LineBasicMaterial({color:0xdcffff,transparent:true,opacity:.6})));
 // Small floating 3D objects replace upright billboard rectangles.
 const hazards=[{at:.15,lane:-.43,kind:1},{at:.28,lane:.43,kind:0},{at:.41,lane:0,kind:2},{at:.54,lane:-.43,kind:1},{at:.68,lane:.43,kind:0},{at:.82,lane:0,kind:2}];
@@ -183,7 +184,7 @@ function riding(dt){
  state.laneSpeed+=(wanted-state.laneSpeed)*(1-Math.exp(-8*dt));state.lane=T.MathUtils.clamp(state.lane+state.laneSpeed*dt,-LANE_LIMIT,LANE_LIMIT);
  if(Math.abs(state.lane)===LANE_LIMIT&&Math.sign(state.laneSpeed)===Math.sign(state.lane))state.laneSpeed*=Math.exp(-14*dt);
  const before=trackFrame(state.phase),targetSpeed=isKamikaze?43+Math.max(0,-before.f.y)*15:isFlush?25+Math.max(0,-before.f.y)*9:21+Math.max(0,-before.f.y)*12;
- state.speed+=(targetSpeed-state.speed)*(1-Math.exp(-1.3*dt));state.rideTime+=dt;state.phase=Math.min(1,state.phase+state.speed*dt/length);
+ state.speed+=(targetSpeed-state.speed)*(1-Math.exp(-1.3*dt));state.rideTime+=dt;state.phase=Math.min(1,state.phase+state.speed*dt/length);if(isFlush){const q=state.phase;if(q>.12&&q<.96){const completed=Math.min(3,Math.floor((q-.12)/.28)+1);$('instruction').textContent='Воронка: '+completed+' / 3 круга — затем смыв в отверстие!';}else if(q>=.96){$('instruction').textContent='СМЫВ! Падаем прямо в бассейн!';}}
  const f=trackFrame(state.phase),radius=courseRadius(state.phase),bank=radius-Math.sqrt(radius**2-state.lane**2);
  state.position.copy(f.p).addScaledVector(f.right,state.lane).addScaledVector(UP,bank+.15);state.heading=Math.atan2(f.f.x,f.f.z);
  const ahead=trackFrame(Math.min(1,state.phase+.012)),bend=f.f.x*ahead.f.z-f.f.z*ahead.f.x;
@@ -237,8 +238,10 @@ function rideCamera(t){
    desired.set(9,12,-21);lookTarget.set(-10,8,-20);return;
  }
  if(isFlush){
-   if(t<.88){desired.set(30,28,40);lookTarget.set(12,7,22);return;}
-   desired.set(22,13,35);lookTarget.copy(f.p);return;
+   // Permanent outside overhead view keeps the full bowl, rider, drain and falling motion in frame.
+   desired.set(35,32,49);
+   lookTarget.set(12,4.7,22);
+   return;
  }
  const distance=isTunnel?3.8:5.8,height=isTunnel?2.05:3.2,back=Math.max(0,t-distance/length);
  desired.copy(track.getPointAt(back)).addScaledVector(UP,height);
@@ -257,7 +260,7 @@ function cameraUpdate(dt){
  else if(state.mode==='climb'){desired.copy(state.position).add(v(-4.8,3.1,stairSegment>=23?-7:7));lookTarget.copy(state.position).add(v(0,1.3,0));}
  else if(['splash','exit'].includes(state.mode)){desired.copy(state.position).add(isTunnel?trackFrame(1).f.clone().setY(0).normalize().multiplyScalar(7).add(v(0,4.3,0)):v(6,5,8));lookTarget.copy(state.position).add(v(0,.6,0));}
  else{desired.copy(state.position).add(v(12,10,16));lookTarget.copy(state.position).add(v(0,1.6,0));}
- const focus=cameraFocus(),protectedView=!overview&&state.mode!=='menu';if(protectedView){if(state.mode==='walk'||state.mode==='climb')chooseOutdoorView(desired,focus);constrainCamera(desired,focus);}const follow=state.mode==='ride'?16:state.mode==='platform'?6:4,a=1-Math.exp(-dt*follow);camera.position.lerp(desired,a);if(protectedView){constrainCamera(camera.position,focus);if(['walk','climb'].includes(state.mode)&&camera.position.distanceTo(focus)<5&&cameraFraction(desired,focus)>.999)camera.position.copy(desired);}smoothLook.lerp(lookTarget,a);camera.lookAt(smoothLook);
+ const focus=cameraFocus(),protectedView=!overview&&state.mode!=='menu'&&!(isFlush&&state.mode==='ride');if(protectedView){if(state.mode==='walk'||state.mode==='climb')chooseOutdoorView(desired,focus);constrainCamera(desired,focus);}const follow=state.mode==='ride'?(isFlush?5:16):state.mode==='platform'?6:4,a=1-Math.exp(-dt*follow);camera.position.lerp(desired,a);if(protectedView){constrainCamera(camera.position,focus);if(['walk','climb'].includes(state.mode)&&camera.position.distanceTo(focus)<5&&cameraFraction(desired,focus)>.999)camera.position.copy(desired);}smoothLook.lerp(lookTarget,a);camera.lookAt(smoothLook);
  const fov=state.mode==='ride'?(isTunnel?62:isKamikaze?72:isFlush?62:52)+T.MathUtils.clamp((state.speed-4)*.45,0,9):52;camera.fov=T.MathUtils.damp(camera.fov,fov,4,dt);camera.updateProjectionMatrix();
 }
 camera.position.set(39,30,43);camera.lookAt(smoothLook);
