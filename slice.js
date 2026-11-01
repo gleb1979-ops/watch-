@@ -52,8 +52,8 @@ const poolRings=[];for(let i=0;i<5;i++){const r=mesh(new T.TorusGeometry(.6,.035
 // Palm trees, flower beds, shade, loungers: decoration stays outside walking routes.
 function palm(x,z,height,seed){const group=new T.Group();scene.add(group);group.position.set(x,0,z);bar(v(0,0,0),v(.3,height,0),.22,wood,group);for(let i=0;i<7;i++){const a=i*Math.PI*2/7+seed;const points=[v(.3,height,0),v(Math.cos(a)*1.2,height+.45,Math.sin(a)*1.2),v(Math.cos(a)*3,height-.7,Math.sin(a)*3)];const curve=new T.CatmullRomCurve3(points);const pos=[],indices=[];for(let j=0;j<=12;j++){const t=j/12,p=curve.getPoint(t),width=Math.sin(Math.PI*t)*.48*(j%2?.72:1);for(const side of [-1,1])pos.push(p.x-Math.sin(a)*width*side,p.y,p.z+Math.cos(a)*width*side);if(j<12){const k=j*2;indices.push(k,k+2,k+1,k+1,k+2,k+3);}}const shape=new T.BufferGeometry();shape.setAttribute('position',new T.Float32BufferAttribute(pos,3));shape.setIndex(indices);shape.computeVertexNormals();const leaves=i%2?green:leafLight;leaves.side=T.DoubleSide;mesh(shape,leaves,0,0,0,group);bar(points[0],points[2],.023,leafLight,group);}
 for(let i=0;i<3;i++)ball(.22,mat(0x8a693e),Math.cos(i*2)*.25,height-.35,Math.sin(i*2)*.25,group);}
-[[-25,10,8],[-25,-23,9],[24,-24,9],[24,5,8],[39,43,10],[-8,30,8],[-25,29,7]].forEach((p,i)=>palm(...p,i));
-for(const [x,z]of [[-25,10],[-25,-23],[24,-24],[24,5],[39,43],[-8,30],[-25,29]]){box(4,.35,4,cream,x,.05,z);for(let i=0;i<5;i++){const a=i*2.4;ball(.6,i%2?green:leafLight,x+Math.cos(a)*1.1,.5,z+Math.sin(a)*1.1);ball(.17,mat([0xffa2ac,0xffd45c,0xff8060][i%3]),x+Math.cos(a)*1.3,.95,z+Math.sin(a)*1.3);}}
+(isKamikaze?[[-29,17,8],[-29,28,9],[40,37,9],[40,10,8],[39,43,10],[-29,38,8]]:[[-25,10,8],[-25,-23,9],[24,-24,9],[24,5,8],[39,43,10],[-8,30,8],[-25,29,7]]).forEach((p,i)=>palm(...p,i));
+for(const [x,z]of (isKamikaze?[[-29,17],[-29,28],[40,37],[40,10],[39,43],[-29,38]]:[[-25,10],[-25,-23],[24,-24],[24,5],[39,43],[-8,30],[-25,29]])){box(4,.35,4,cream,x,.05,z);for(let i=0;i<5;i++){const a=i*2.4;ball(.6,i%2?green:leafLight,x+Math.cos(a)*1.1,.5,z+Math.sin(a)*1.1);ball(.17,mat([0xffa2ac,0xffd45c,0xff8060][i%3]),x+Math.cos(a)*1.3,.95,z+Math.sin(a)*1.3);}}
 function umbrella(x,z){bar(v(x,0,z),v(x,4,z),.08,wood);mesh(new T.ConeGeometry(2.5,.8,12),mat(0xf5b55d),x,4,z);for(const dx of [-1.3,1.3]){const g=new T.Group();g.position.set(x+dx,.32,z+1.1);scene.add(g);box(.85,.12,2.3,white,0,0,0,g);box(.72,.06,2.15,mat(0x52bbbc),0,.09,0,g);const back=box(.85,.12,1,white,0,.4,-1,g);back.rotation.x=-.65;for(const dz of [-.65,.65])bar(v(-.3,-.28,dz),v(.3,-.28,dz),.07,steel,g);}}
 umbrella(isTunnel?-22:-10,isTunnel?26:25);umbrella(23,16);
 // Two real stair flights, landings, handrails and a platform, all in the same world.
@@ -78,11 +78,11 @@ markInteractive(stairs);
 const curvePoints=[];if(isKamikaze){
   // Vertical loop: enter along -Z, go upside-down at the crown, then fly out.
   // Entry slopes toward the loop's near-bottom tangent, not through the loop itself.
-  for(const p of [[-10,14,0],[-10,13,-5],[-10,9,-11],[-10,4.5,-18],[-10,2.2,-25]])curvePoints.push(v(...p));
+  for(const p of [[-10,14,0],[-11,13,-8],[-12,9,-20],[-12,4.5,-30],[-12,2.2,-43]])curvePoints.push(v(...p));
   // Loop lives further out at z=-32; its lowest point and both tangents are isolated.
-  for(let i=0;i<=120;i++){const a=i/120*Math.PI*2;curvePoints.push(v(-10,8.2-6*Math.cos(a),-32-6*Math.sin(a)));}
+  for(let i=0;i<=120;i++){const q=i/120,a=q*Math.PI*2;curvePoints.push(v(-12+6*q,8.2-6*Math.cos(a),-43-6*Math.sin(a)));}
   // Separate runout curves away from the entry corridor before heading to the pool.
-  for(const p of [[-10,2.2,-39],[-5,2.3,-43],[4,2.3,-40],[15,2.0,-31],[24,1.7,-16],[22,1.4,0],[16,.95,13],[10,.55,24]])curvePoints.push(v(...p));
+  for(const p of [[-6,2.2,-50],[5,2.3,-53],[18,2.3,-48],[27,2.0,-35],[32,1.7,-17],[24,1.4,0],[16,.95,13],[10,.55,24]])curvePoints.push(v(...p));
 }else if(isFlush){
   // A real broad open bowl: three complete orbits, an open central drain and vertical drop.
   // Long open flume followed by a dark tube, only then the giant final bowl.
@@ -123,7 +123,7 @@ if(isFlush){
 }
 if(isKamikaze){
  // Bright full circular structural hoops accentuate the silhouette of the upside-down loop.
- const loopRing=mesh(new T.TorusGeometry(6.05,.2,12,120),mat(0xff823c,{emissive:0x662008,emissiveIntensity:.5}),-10,8.2,-32);
+ const loopRing=mesh(new T.TorusGeometry(6.05,.2,12,120),mat(0xff823c,{emissive:0x662008,emissiveIntensity:.5}),-9,8.2,-43);
  loopRing.rotation.y=Math.PI/2;
 }
 const wallMap=tile(art,isTunnel||isFlush?3:2,0,4,2),flowMap=tile(art,0,0,4,2);
@@ -215,8 +215,8 @@ function pose(dt){
  rig.root.position.copy(state.position);
  const pitch=state.mode==='ride'?state.pitch:0,roll=state.mode==='ride'?state.roll:0;
  boardRotation.setFromEuler(new T.Euler(pitch,state.heading,roll,'YXZ'));
-  if(isKamikaze&&state.mode==='ride'&&state.position.z<-25.5&&state.position.z>-38.5){
-   const p=trackFrame(state.phase).p,dy=p.y-8.2,dz=p.z+32;
+  if(isKamikaze&&state.mode==='ride'&&state.position.z<-36.5&&state.position.z>-49.5){
+   const p=trackFrame(state.phase).p,dy=p.y-8.2,dz=p.z+43;
    if(Math.abs(Math.hypot(dy,dz)-6)<1.3){
     // Preserve a full uninterrupted 360-degree inversion through the loop.
     let loopAngle=Math.atan2(-dz,-dy);if(loopAngle<0)loopAngle+=Math.PI*2;
@@ -246,9 +246,9 @@ particles.forEach((p,i)=>{const t=clock-finishedAt;p.mesh.visible=state.mode==='
 const desired=new T.Vector3(),lookTarget=new T.Vector3(),smoothLook=v(0,5,0);
 function rideCamera(t){
  const f=trackFrame(t);
- if(isKamikaze && f.p.z<-24 && f.p.z>-40){
+ if(isKamikaze && f.p.z<-35 && f.p.z>-51){
    // External side view throughout the loop: the camera sees the entire 360-degree revolution.
-   desired.set(12,13,-32);lookTarget.set(-10,8,-32);return;
+   desired.set(15,13,-43);lookTarget.set(-9,8,-43);return;
  }
  if(isFlush){
    // First-person ride view with visible feet and lane steering, including bowl orbits and drain.
