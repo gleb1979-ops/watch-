@@ -201,6 +201,14 @@ function pose(dt){
  rig.root.position.copy(state.position);
  const pitch=state.mode==='ride'?state.pitch:0,roll=state.mode==='ride'?state.roll:0;
  boardRotation.setFromEuler(new T.Euler(pitch,state.heading,roll,'YXZ'));
+  if(isKamikaze&&state.mode==='ride'&&state.position.z<-18.8&&state.position.z>-27.0){
+   const p=trackFrame(state.phase).p,dy=p.y-8.2,dz=p.z+20;
+   if(Math.abs(Math.hypot(dy,dz)-6)<1.3){
+    // Preserve a full uninterrupted 360-degree inversion through the loop.
+    let loopAngle=Math.atan2(-dz,-dy);if(loopAngle<0)loopAngle+=Math.PI*2;
+    boardRotation.premultiply(new T.Quaternion().setFromAxisAngle(v(1,0,0),loopAngle));
+   }
+  }
  riderRotation.copy(boardRotation).multiply(new T.Quaternion().setFromAxisAngle(v(0,0,1),state.mode==='ride'?state.lean:0));
  rig.root.quaternion.slerp(riderRotation,1-Math.exp(-18*dt));rig.root.position.add(v(0,-.65*state.seat,0).applyQuaternion(rig.root.quaternion));
  rig.body.position.y=state.walking?Math.abs(Math.sin(state.walked*6))*.035*(1-state.seat):0;
