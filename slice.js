@@ -327,7 +327,7 @@ function cameraUpdate(dt){
 camera.position.set(39,30,43);camera.lookAt(smoothLook);
 function resize(){renderer.setPixelRatio(software?Math.min(1,1000/innerWidth,700/innerHeight):Math.min(devicePixelRatio,1.5));camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);}
 addEventListener('resize',resize);resize();
-parkLife=window.createParkLife({T,scene,state,held,rig,say,setMode,navigate,courseId,courseName,camera,renderer,extra,track,onStart:()=>go(true),stopNavigation:()=>{autoTarget=null;route=[];},onBeginTravel:()=>{parkCamera?.reset();$('view').textContent='Park view';},onFocusBoard:()=>{overview=false;parkCamera?.focus(v(18,7,49),22);}});
+parkLife=window.createParkLife({T,scene,state,held,rig,say,setMode,navigate,courseId,courseName,camera,renderer,extra,track,rideFrame:trackFrame,onStart:()=>go(true),stopNavigation:()=>{autoTarget=null;route=[];},onBeginTravel:()=>{parkCamera?.reset();$('view').textContent='Park view';},onFocusBoard:()=>{overview=false;parkCamera?.focus(v(18,7,49),22);}});
 function render(time){const dt=Math.min((time-last)/1000,.05);last=time;if(!paused){update(dt);cameraUpdate(dt);}else if(parkCamera?.active)cameraUpdate(dt);renderer.render(scene,camera);requestAnimationFrame(render);}
 requestAnimationFrame(render);
 function keyName(e){return({KeyW:'w',KeyA:'a',KeyS:'s',KeyD:'d',KeyE:'e',KeyV:'v',ShiftLeft:'Shift',ShiftRight:'Shift'})[e.code]||e.key;}
