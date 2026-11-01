@@ -77,9 +77,12 @@ markInteractive(stairs);
 // The selected spiral or S-shaped tube uses one curve for geometry and movement.
 const curvePoints=[];if(isKamikaze){
   // Vertical loop: enter along -Z, go upside-down at the crown, then fly out.
-  for(const p of [[-10,14,0],[-10,13,-4],[-10,9,-9],[-10,4,-14],[-10,2.2,-20]])curvePoints.push(v(...p));
-  for(let i=1;i<=96;i++){const a=i/96*Math.PI*2;curvePoints.push(v(-10,8.2-6*Math.cos(a),-20-6*Math.sin(a)));}
-  for(const p of [[-10,2.3,-14],[-8,2.2,-8],[-3,1.8,2],[5,1.2,13],[10,.55,24]])curvePoints.push(v(...p));
+  // Entry slopes toward the loop's near-bottom tangent, not through the loop itself.
+  for(const p of [[-10,14,0],[-10,13,-5],[-10,9,-11],[-10,4.5,-18],[-10,2.2,-25]])curvePoints.push(v(...p));
+  // Loop lives further out at z=-32; its lowest point and both tangents are isolated.
+  for(let i=0;i<=120;i++){const a=i/120*Math.PI*2;curvePoints.push(v(-10,8.2-6*Math.cos(a),-32-6*Math.sin(a)));}
+  // Separate runout curves away from the entry corridor before heading to the pool.
+  for(const p of [[-10,2.2,-39],[-5,2.3,-43],[4,2.3,-40],[15,2.0,-31],[24,1.7,-16],[22,1.4,0],[16,.95,13],[10,.55,24]])curvePoints.push(v(...p));
 }else if(isFlush){
   // A real broad open bowl: three complete orbits, an open central drain and vertical drop.
   curvePoints.push(v(-10,14,0),v(-10,14,7),v(-5,13,16),v(0,11.5,22));
@@ -110,12 +113,12 @@ if(isFlush){
 }
 if(isKamikaze){
  // Bright full circular structural hoops accentuate the silhouette of the upside-down loop.
- const loopRing=mesh(new T.TorusGeometry(6.05,.2,12,120),mat(0xff823c,{emissive:0x662008,emissiveIntensity:.5}),-10,8.2,-20);
+ const loopRing=mesh(new T.TorusGeometry(6.05,.2,12,120),mat(0xff823c,{emissive:0x662008,emissiveIntensity:.5}),-10,8.2,-32);
  loopRing.rotation.y=Math.PI/2;
 }
 const wallMap=tile(art,isTunnel||isFlush?3:2,0,4,2),flowMap=tile(art,0,0,4,2);
-const slideMesh=mesh(flume(),mat(isTunnel?0xe9faff:isKamikaze?0xffb5ad:isFlush?0xf5eafa:0xffefdb,{map:wallMap,side:T.DoubleSide,roughness:.28,emissive:isTunnel?0x173c75:isKamikaze?0x4a0800:0x000000,emissiveIntensity:.65}));markInteractive(slideMesh);slideMesh.castShadow=true;slideMesh.receiveShadow=true;if(isFlush)slideMesh.material.transparent=true;if(isFlush){slideMesh.material.opacity=0;slideMesh.visible=false;}if(isKamikaze){slideMesh.material.transparent=true;slideMesh.material.opacity=.6;}
-const flow=mesh(flume(true),mat(0x85ebf0,{map:flowMap,side:T.DoubleSide,transparent:true,opacity:.78,roughness:.15,depthWrite:false}));markInteractive(flow);if(isFlush){flow.material.opacity=0;flow.visible=false;}if(isKamikaze){flow.material.opacity=.36;}
+const slideMesh=mesh(flume(),mat(isTunnel?0xe9faff:isKamikaze?0xffb5ad:isFlush?0xf5eafa:0xffefdb,{map:wallMap,side:T.DoubleSide,roughness:.28,emissive:isTunnel?0x173c75:isKamikaze?0x4a0800:0x000000,emissiveIntensity:.65}));markInteractive(slideMesh);slideMesh.castShadow=true;slideMesh.receiveShadow=true;if(isFlush)slideMesh.material.transparent=true;if(isFlush){slideMesh.material.opacity=0;slideMesh.visible=false;}if(isKamikaze){slideMesh.material.transparent=false;slideMesh.material.opacity=1;}
+const flow=mesh(flume(true),mat(0x85ebf0,{map:flowMap,side:T.DoubleSide,transparent:true,opacity:.78,roughness:.15,depthWrite:false}));markInteractive(flow);if(isFlush){flow.material.opacity=0;flow.visible=false;}if(isKamikaze){flow.material.opacity=.98;flow.material.color.setHex(0x18dfff);flow.material.emissive=new T.Color(0x087da0);flow.material.emissiveIntensity=.35;flow.material.depthWrite=true;}
 if(!isTunnel&&!isFlush)for(const side of [-1,1]){const ps=[];for(let i=0;i<=500;i++){const f=trackFrame(i/500);ps.push(f.p.addScaledVector(f.right,side*1.475).addScaledVector(UP,1.6));}const lip=mesh(new T.TubeGeometry(new T.CatmullRomCurve3(ps),520,.075,6,false),rail);markInteractive(lip);}
 // Luminous ribs reveal depth, curves and the three widened tunnel chambers.
 if(isTunnel){const colors=[0x91f8ff,0xd6adff,0xffe6ad],materials=colors.map(color=>new T.MeshBasicMaterial({color}));const count=Math.ceil(length/6);for(let i=0;i<=count;i++){const t=i/count,f=trackFrame(t),r=courseRadius(t)-.045,points=[];for(let j=0;j<=64;j++){const a=j/64*Math.PI*2;points.push(f.p.clone().addScaledVector(f.right,Math.sin(a)*r).addScaledVector(UP,courseRadius(t)-Math.cos(a)*r));}markInteractive(mesh(new T.TubeGeometry(new T.CatmullRomCurve3(points,true),64,i===0||i===count?.11:.045,6,true),materials[i%3]));}}
@@ -202,8 +205,8 @@ function pose(dt){
  rig.root.position.copy(state.position);
  const pitch=state.mode==='ride'?state.pitch:0,roll=state.mode==='ride'?state.roll:0;
  boardRotation.setFromEuler(new T.Euler(pitch,state.heading,roll,'YXZ'));
-  if(isKamikaze&&state.mode==='ride'&&state.position.z<-18.8&&state.position.z>-27.0){
-   const p=trackFrame(state.phase).p,dy=p.y-8.2,dz=p.z+20;
+  if(isKamikaze&&state.mode==='ride'&&state.position.z<-25.5&&state.position.z>-38.5){
+   const p=trackFrame(state.phase).p,dy=p.y-8.2,dz=p.z+32;
    if(Math.abs(Math.hypot(dy,dz)-6)<1.3){
     // Preserve a full uninterrupted 360-degree inversion through the loop.
     let loopAngle=Math.atan2(-dz,-dy);if(loopAngle<0)loopAngle+=Math.PI*2;
@@ -233,9 +236,9 @@ particles.forEach((p,i)=>{const t=clock-finishedAt;p.mesh.visible=state.mode==='
 const desired=new T.Vector3(),lookTarget=new T.Vector3(),smoothLook=v(0,5,0);
 function rideCamera(t){
  const f=trackFrame(t);
- if(isKamikaze && f.p.z<-11 && f.p.z>-28){
+ if(isKamikaze && f.p.z<-24 && f.p.z>-40){
    // External side view throughout the loop: the camera sees the entire 360-degree revolution.
-   desired.set(9,12,-21);lookTarget.set(-10,8,-20);return;
+   desired.set(12,13,-32);lookTarget.set(-10,8,-32);return;
  }
  if(isFlush){
    // Permanent outside overhead view keeps the full bowl, rider, drain and falling motion in frame.
