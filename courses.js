@@ -1,9 +1,7 @@
 /* Additional routes share the original character, controls and pool workflow. */
 window.createExtraCourses=function(T){
  const v=(...p)=>new T.Vector3(...p),curve=points=>{const c=new T.CatmullRomCurve3(points.map(p=>Array.isArray(p)?v(...p):p));c.arcLengthDivisions=2400;return c;};
- const blackPoints=[[-10,14,0],[-14,13.8,-9]];
- for(let i=0;i<=180;i++){const q=i/180,a=Math.PI+q*Math.PI*5,r=12-4*q;blackPoints.push([4+Math.cos(a)*r,13.2-10.8*q,-22+Math.sin(a)*r]);}
- blackPoints.push([14,1.8,-12],[16,1.2,4],[10,.55,24]);
+ const blackPoints=[[-10,14,0],[-12,13.2,-12],[-5,12.5,-28],[12,11.8,-37],[30,10.7,-30],[33,9.8,-10],[20,8.8,4],[0,7.8,1],[-12,6.8,14],[-4,5.9,29],[13,5.1,32],[28,4.2,21],[25,3.3,7],[15,2.4,8],[10,1.3,17],[10,.55,24]];
  const drop=curve([[-10,14,0],[-10,13,-4],[-8,7,-9],[-2,2.2,-16],[5,1.6,-23]]),ramp=curve([[5,1.6,-23],[7,2,-29],[9,5,-34],[10,11,-38],[10,18,-40],[10,21,-40.5]]),runout=curve([[5,1.6,-23],[13,1.5,-25],[25,1.3,-17],[25,1.1,-3],[17,.8,13],[10,.55,24]]);
  class RampLeg extends T.Curve{constructor(end,reverse=false){super();this.end=end;this.reverse=reverse;this.arcLengthDivisions=1600;}getPoint(t,target=new T.Vector3()){return target.copy(ramp.getPointAt((this.reverse?1-t:t)*this.end));}getLength(){return ramp.getLength()*this.end;}}
  const second=new RampLeg(.72),back=new RampLeg(1,true),secondBack=new RampLeg(.72,true),boomerang=new T.CurvePath();for(const part of [drop,ramp,back,second,secondBack,runout])boomerang.add(part);boomerang.arcLengthDivisions=6000;
