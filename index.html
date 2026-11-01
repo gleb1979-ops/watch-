@@ -2,18 +2,18 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Траппкинс — две водные горки</title>
+<title>Траппкинс — четыре водные горки</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='27'%3E🌊%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="slice.css?v=16">
+<link rel="stylesheet" href="slice.css?v=17">
 </head>
 <body>
 <main id="scene" aria-label="Трёхмерный аквапарк с выбором трассы"></main>
 <header class="topbar"><div class="wordmark">TRAPKINS <span>АКВАПАРК</span></div><div class="top-actions"><button id="view" title="Общий вид площадки">Весь участок</button><button id="pause" title="Пауза">Пауза</button><button id="fullscreen" title="Полный экран">Экран</button></div></header>
-<section class="ride-card"><span class="eyebrow">ОДНА ГОРКА · ПОЛНЫЙ КРУГ</span><nav class="course-picker" aria-label="Выбор трассы"><button data-course="spiral" class="selected">Спираль</button><button data-course="tunnel">Тоннель</button></nav><h1>Солнечная спираль</h1><p id="instruction">Прогуляйся по площадке или отправляйся к лестнице.</p><div class="steps"><span data-phase="walk" class="active">01 Площадка</span><span data-phase="climb">02 Лестница</span><span data-phase="ride">03 Горка</span><span data-phase="pool">04 Бассейн</span></div><div class="progress"><i id="progress"></i></div></section>
+<section class="ride-card"><span class="eyebrow">ОДНА ГОРКА · ПОЛНЫЙ КРУГ</span><nav class="course-picker" aria-label="Выбор трассы"><button data-course="spiral" class="selected">Спираль</button><button data-course="tunnel">Тоннель</button><button data-course="kamikaze">Камикадзе 360°</button><button data-course="flush">Суперсмыв 🚽</button></nav><h1>Солнечная спираль</h1><p id="instruction">Прогуляйся по площадке или отправляйся к лестнице.</p><div class="steps"><span data-phase="walk" class="active">01 Площадка</span><span data-phase="climb">02 Лестница</span><span data-phase="ride">03 Горка</span><span data-phase="pool">04 Бассейн</span></div><div class="progress"><i id="progress"></i></div></section>
 <div id="feedback" role="status" aria-live="polite"></div>
 <div class="dock"><button id="go">На горку <span>→</span></button><p id="controls"><kbd>WASD</kbd> / стрелки — ходить <b>·</b> клик — идти <b>·</b> <kbd>E</kbd> — на горку</p></div>
 <div class="touch-controls" aria-label="Движение"><button data-key="ArrowLeft">←</button><button data-key="ArrowUp">↑</button><button data-key="ArrowDown">↓</button><button data-key="ArrowRight">→</button></div>
-<section id="welcome" class="welcome"><div><span class="eyebrow">TRAPKINS · МАЛЕНЬКОЕ ПРИКЛЮЧЕНИЕ</span><h2>Две горки.<br>Два приключения.</h2><p>Пройди по площадке. Поднимись по настоящей лестнице.<br>Выбери открытую спираль или закрытый извилистый тоннель.</p><button id="start" disabled>Загружаем аквапарк…</button><small>Объёмный герой и весь маршрут — в одном пространстве.</small></div></section>
+<section id="welcome" class="welcome"><div><span class="eyebrow">TRAPKINS · МАЛЕНЬКОЕ ПРИКЛЮЧЕНИЕ</span><h2>Четыре горки.<br>Четыре приключения.</h2><p>Пройди по площадке. Поднимись по настоящей лестнице.<br>Выбери спираль, тоннель, экстремальную петлю 360° или горку-унитаз с закручивающимся сливом.</p><button id="start" disabled>Загружаем аквапарк…</button><small>Объёмный герой и весь маршрут — в одном пространстве.</small></div></section>
 <div id="error" hidden>Не удалось включить 3D. Попробуй открыть игру в Chrome, Edge или Safari с включённым WebGL.</div>
-<script src="vendor/three.min.js"></script><script src="avatar3d.js?v=16"></script><script src="slice.js?v=16"></script>
+<script src="vendor/three.min.js"></script><script src="avatar3d.js?v=17"></script><script src="slice.js?v=17"></script>
 </body></html>
